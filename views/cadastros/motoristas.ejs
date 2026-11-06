@@ -1,0 +1,154 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Cadastro de Motoristas e Responsáveis pela Coleta</h4>
+      <p class="text-muted small mb-0">Agiliza o preenchimento no momento da retirada física e emissão do comprovante</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <button type="button" class="btn btn-janlux" data-bs-toggle="modal" data-bs-target="#modalMotorista" onclick="limparFormMotorista()">
+        <i class="bi bi-person-badge me-1"></i> Novo Motorista
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Busca -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/cadastros/motoristas" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-9">
+        <label class="form-label small fw-semibold">Pesquisar Motorista</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Nome, CPF ou Transportadora..." value="<%= busca %>">
+        </div>
+      </div>
+      <div class="col-md-3 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/cadastros/motoristas" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Motoristas -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= motoristas.length %> motoristas cadastrados</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Nome Completo</th>
+            <th>CPF</th>
+            <th>Documento (RG/CNH)</th>
+            <th>Telefone</th>
+            <th>Transportadora Vinculada</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (motoristas.length === 0) { %>
+            <tr><td colspan="6" class="text-center text-muted py-5">Nenhum motorista cadastrado ainda. Podem ser cadastrados aqui ou diretamente na coleta.</td></tr>
+          <% } else { %>
+            <% motoristas.forEach(m => { %>
+              <tr>
+                <td class="fw-bold text-navy"><%= m.nome %></td>
+                <td><%= m.cpf || '-' %></td>
+                <td><%= m.documento || '-' %></td>
+                <td><%= m.telefone || '-' %></td>
+                <td><span class="badge bg-light text-muted border"><%= m.transportadora_nome || 'Livre / Autônomo' %></span></td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick='editarMotorista(<%= JSON.stringify(m) %>)' title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Motorista -->
+<div class="modal fade" id="modalMotorista" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/cadastros/motoristas/salvar" method="POST">
+        <input type="hidden" name="id" id="motId">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy" id="motModalTitle">Cadastrar Motorista</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nome Completo <span class="text-danger">*</span></label>
+            <input type="text" name="nome" id="motNome" class="form-control" placeholder="ex: Roberto da Silva" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">CPF</label>
+              <input type="text" name="cpf" id="motCpf" class="form-control" placeholder="000.000.000-00">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Documento de Identificação (RG / CNH) <span class="text-danger">*</span></label>
+              <input type="text" name="documento" id="motDoc" class="form-control" placeholder="ex: 12.345.678-9" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Telefone</label>
+            <input type="text" name="telefone" id="motTel" class="form-control" placeholder="(00) 00000-0000">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Transportadora Vinculada</label>
+            <select name="transportadora_id" id="motTransp" class="form-select">
+              <option value="">Nenhuma / Autônomo</option>
+              <% transportadoras.forEach(t => { %>
+                <option value="<%= t.id %>"><%= t.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Motorista</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function limparFormMotorista() {
+    document.getElementById('motId').value = '';
+    document.getElementById('motNome').value = '';
+    document.getElementById('motCpf').value = '';
+    document.getElementById('motDoc').value = '';
+    document.getElementById('motTel').value = '';
+    document.getElementById('motTransp').value = '';
+    document.getElementById('motModalTitle').innerText = 'Cadastrar Novo Motorista';
+  }
+
+  function editarMotorista(m) {
+    document.getElementById('motId').value = m.id;
+    document.getElementById('motNome').value = m.nome;
+    document.getElementById('motCpf').value = m.cpf || '';
+    document.getElementById('motDoc').value = m.documento || '';
+    document.getElementById('motTel').value = m.telefone || '';
+    document.getElementById('motTransp').value = m.transportadora_id || '';
+    document.getElementById('motModalTitle').innerText = 'Editar Motorista';
+    new bootstrap.Modal(document.getElementById('modalMotorista')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
