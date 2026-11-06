@@ -1,0 +1,146 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Cadastro de Transportadoras</h4>
+      <p class="text-muted small mb-0">Empresas e parceiros logísticos autorizados a realizar coletas</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <button type="button" class="btn btn-janlux" data-bs-toggle="modal" data-bs-target="#modalTransp" onclick="limparFormTransp()">
+        <i class="bi bi-truck me-1"></i> Nova Transportadora
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Busca -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/cadastros/transportadoras" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-9">
+        <label class="form-label small fw-semibold">Pesquisar Transportadora</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Nome ou CNPJ..." value="<%= busca %>">
+        </div>
+      </div>
+      <div class="col-md-3 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/cadastros/transportadoras" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Transportadoras -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= transportadoras.length %> transportadoras</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th style="width: 10%;">ID</th>
+            <th style="width: 45%;">Nome / Razão Social</th>
+            <th style="width: 20%;">CNPJ</th>
+            <th style="width: 15%;">Telefone</th>
+            <th style="width: 10%;" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (transportadoras.length === 0) { %>
+            <tr><td colspan="5" class="text-center text-muted py-5">Nenhuma transportadora cadastrada.</td></tr>
+          <% } else { %>
+            <% transportadoras.forEach(t => { %>
+              <tr>
+                <td><small class="text-muted">#<%= t.id %></small></td>
+                <td class="fw-bold text-navy"><%= t.nome %></td>
+                <td><%= t.cnpj || '-' %></td>
+                <td><%= t.telefone || '-' %></td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick='editarTransp(<%= JSON.stringify(t) %>)' title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Transportadora -->
+<div class="modal fade" id="modalTransp" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/cadastros/transportadoras/salvar" method="POST">
+        <input type="hidden" name="id" id="transpId">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy" id="transpModalTitle">Cadastrar Transportadora</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nome da Transportadora <span class="text-danger">*</span></label>
+            <input type="text" name="nome" id="transpNome" class="form-control" placeholder="ex: BRASPRESS, GOLLOG, CORREIO SEDEX..." required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">CNPJ</label>
+            <input type="text" name="cnpj" id="transpCnpj" class="form-control" placeholder="00.000.000/0000-00">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Telefone de Contato</label>
+            <input type="text" name="telefone" id="transpTelefone" class="form-control" placeholder="(00) 0000-0000">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações</label>
+            <textarea name="observacoes" id="transpObs" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Transportadora</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function limparFormTransp() {
+    document.getElementById('transpId').value = '';
+    document.getElementById('transpNome').value = '';
+    document.getElementById('transpCnpj').value = '';
+    document.getElementById('transpTelefone').value = '';
+    document.getElementById('transpObs').value = '';
+    document.getElementById('transpModalTitle').innerText = 'Cadastrar Nova Transportadora';
+  }
+
+  function editarTransp(t) {
+    document.getElementById('transpId').value = t.id;
+    document.getElementById('transpNome').value = t.nome;
+    document.getElementById('transpCnpj').value = t.cnpj || '';
+    document.getElementById('transpTelefone').value = t.telefone || '';
+    document.getElementById('transpObs').value = t.observacoes || '';
+    document.getElementById('transpModalTitle').innerText = 'Editar Transportadora';
+    new bootstrap.Modal(document.getElementById('modalTransp')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
