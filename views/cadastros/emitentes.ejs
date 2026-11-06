@@ -1,0 +1,242 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Cadastro de Empresas Emitentes</h4>
+      <p class="text-muted small mb-0">Matriz, filiais e empresas emissoras de notas fiscais da operação</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <button type="button" class="btn btn-janlux" data-bs-toggle="modal" data-bs-target="#modalEmitente" onclick="limparFormEmitente()">
+        <i class="bi bi-building me-1"></i> Novo Emitente
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Busca -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/cadastros/emitentes" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-9">
+        <label class="form-label small fw-semibold">Pesquisar Empresa Emitente</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Razão Social, Nome Fantasia, CNPJ ou Cidade..." value="<%= busca %>">
+        </div>
+      </div>
+      <div class="col-md-3 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/cadastros/emitentes" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Emitentes -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= emitentes.length %> empresa(s) emitente(s)</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th style="width: 10%;">Código</th>
+            <th style="width: 35%;">Razão Social / Nome Fantasia</th>
+            <th style="width: 20%;">CNPJ / I.E.</th>
+            <th style="width: 15%;">Cidade / UF</th>
+            <th style="width: 10%;" class="text-center">Tipo</th>
+            <th style="width: 10%;" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (emitentes.length === 0) { %>
+            <tr><td colspan="6" class="text-center text-muted py-5">Nenhum emitente cadastrado.</td></tr>
+          <% } else { %>
+            <% emitentes.forEach(e => { %>
+              <tr>
+                <td>
+                  <span class="badge bg-light text-primary border font-monospace"><%= e.codigo || 'EMI-' + String(e.id).padStart(3, '0') %></span>
+                </td>
+                <td>
+                  <span class="fw-bold text-navy d-block"><%= e.razao_social %></span>
+                  <% if (e.nome_fantasia) { %>
+                    <small class="text-muted"><%= e.nome_fantasia %></small>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="fw-semibold text-dark"><%= e.cnpj %></span>
+                  <% if (e.inscricao_estadual) { %>
+                    <br><small class="text-muted">IE: <%= e.inscricao_estadual %></small>
+                  <% } %>
+                </td>
+                <td>
+                  <%= e.cidade ? e.cidade + (e.estado ? '/' + e.estado : '') : '-' %>
+                </td>
+                <td class="text-center">
+                  <% if (e.padrao) { %>
+                    <span class="badge bg-success" title="Emitente Padrão nas novas expedições">
+                      <i class="bi bi-star-fill me-1"></i> Principal
+                    </span>
+                  <% } else { %>
+                    <span class="badge bg-secondary">Filial / Outro</span>
+                  <% } %>
+                </td>
+                <td class="text-end">
+                  <div class="d-inline-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick='editarEmitente(<%= JSON.stringify(e) %>)' title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <% if (!e.padrao) { %>
+                    <form action="/cadastros/emitentes/<%= e.id %>/excluir" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este emitente?')">
+                      <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Excluir">
+                        <i class="bi bi-trash3"></i>
+                      </button>
+                    </form>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Emitente -->
+<div class="modal fade" id="modalEmitente" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form action="/cadastros/emitentes/salvar" method="POST">
+        <input type="hidden" name="id" id="emiId">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy" id="emiModalTitle">Cadastrar Empresa Emitente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Código Interno</label>
+              <input type="text" name="codigo" id="emiCodigo" class="form-control text-uppercase" placeholder="ex: EMI-001">
+            </div>
+            <div class="col-md-9">
+              <label class="form-label small fw-semibold">Razão Social <span class="text-danger">*</span></label>
+              <input type="text" name="razao_social" id="emiRazaoSocial" class="form-control" placeholder="ex: JANLUX ELÉTRICOS LTDA." required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nome Fantasia</label>
+              <input type="text" name="nome_fantasia" id="emiNomeFantasia" class="form-control" placeholder="ex: JANLUX">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">CNPJ <span class="text-danger">*</span></label>
+              <input type="text" name="cnpj" id="emiCnpj" class="form-control" placeholder="00.000.000/0001-00" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Inscrição Estadual (I.E.)</label>
+              <input type="text" name="inscricao_estadual" id="emiIE" class="form-control" placeholder="ex: 123.456.789.000 ou ISENTO">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Telefone de Contato</label>
+              <input type="text" name="telefone" id="emiTelefone" class="form-control" placeholder="(00) 0000-0000">
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold">Endereço Completo</label>
+              <input type="text" name="endereco" id="emiEndereco" class="form-control" placeholder="Rua, Número, Bairro">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Cidade</label>
+              <input type="text" name="cidade" id="emiCidade" class="form-control" placeholder="São Paulo">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small fw-semibold">UF</label>
+              <input type="text" name="estado" id="emiEstado" class="form-control text-uppercase" maxlength="2" placeholder="SP">
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label small fw-semibold">E-mail</label>
+              <input type="email" name="email" id="emiEmail" class="form-control" placeholder="fiscal@janlux.com.br">
+            </div>
+
+            <div class="col-12">
+              <div class="form-check p-2 bg-light rounded border">
+                <input class="form-check-input ms-1 me-2" type="checkbox" name="padrao" id="emiPadrao" value="1">
+                <label class="form-check-label fw-bold small text-navy" for="emiPadrao">
+                  Definir como Empresa Emitente Principal / Padrão do sistema
+                </label>
+                <div class="text-muted small ms-4">
+                  Se marcado, este emitente será selecionado automaticamente ao registrar novas expedições.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Observações</label>
+              <textarea name="observacoes" id="emiObs" class="form-control form-control-sm" rows="2" placeholder="Observações internas sobre este emitente..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Emitente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function limparFormEmitente() {
+    document.getElementById('emiId').value = '';
+    document.getElementById('emiCodigo').value = '';
+    document.getElementById('emiRazaoSocial').value = '';
+    document.getElementById('emiNomeFantasia').value = '';
+    document.getElementById('emiCnpj').value = '';
+    document.getElementById('emiIE').value = '';
+    document.getElementById('emiTelefone').value = '';
+    document.getElementById('emiEndereco').value = '';
+    document.getElementById('emiCidade').value = '';
+    document.getElementById('emiEstado').value = '';
+    document.getElementById('emiEmail').value = '';
+    document.getElementById('emiPadrao').checked = false;
+    document.getElementById('emiObs').value = '';
+    document.getElementById('emiModalTitle').innerText = 'Cadastrar Nova Empresa Emitente';
+  }
+
+  function editarEmitente(e) {
+    document.getElementById('emiId').value = e.id;
+    document.getElementById('emiCodigo').value = e.codigo || '';
+    document.getElementById('emiRazaoSocial').value = e.razao_social || '';
+    document.getElementById('emiNomeFantasia').value = e.nome_fantasia || '';
+    document.getElementById('emiCnpj').value = e.cnpj || '';
+    document.getElementById('emiIE').value = e.inscricao_estadual || '';
+    document.getElementById('emiTelefone').value = e.telefone || '';
+    document.getElementById('emiEndereco').value = e.endereco || '';
+    document.getElementById('emiCidade').value = e.cidade || '';
+    document.getElementById('emiEstado').value = e.estado || '';
+    document.getElementById('emiEmail').value = e.email || '';
+    document.getElementById('emiPadrao').checked = e.padrao === 1;
+    document.getElementById('emiObs').value = e.observacoes || '';
+    document.getElementById('emiModalTitle').innerText = 'Editar Empresa Emitente';
+    new bootstrap.Modal(document.getElementById('modalEmitente')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
