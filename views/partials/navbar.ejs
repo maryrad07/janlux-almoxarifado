@@ -1,0 +1,94 @@
+<nav class="navbar navbar-expand-lg navbar-dark navbar-janlux sticky-top">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard">
+      <img src="/public/img/logo.jpg" alt="JANLUX" style="height: 38px; border-radius: 4px; background: white; padding: 2px;" class="me-2">
+      <span class="fw-bold">JANLUX</span>&nbsp;<span class="fw-light small text-warning">ALMOXARIFADO</span>
+    </a>
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navJanlux">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navJanlux">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+        <!-- 1. Painel Principal -->
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
+            <i class="bi bi-speedometer2 me-1"></i> Painel
+          </a>
+        </li>
+
+        <!-- 2. Almoxarifado / Embalagens -->
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/almoxarifado') ? 'active' : '' %>" href="/almoxarifado">
+            <i class="bi bi-boxes me-1"></i> Embalagens
+          </a>
+        </li>
+
+        <!-- 3. Expedições -->
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/expedicoes') ? 'active' : '' %>" href="/expedicoes">
+            <i class="bi bi-truck me-1"></i> Expedição
+          </a>
+        </li>
+
+        <!-- 4. Coletas e Retiradas -->
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/coletas') ? 'active' : '' %>" href="/coletas">
+            <i class="bi bi-file-earmark-check me-1"></i> Coletas
+          </a>
+        </li>
+
+        <!-- 5. Relatórios -->
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/relatorios') ? 'active' : '' %>" href="/relatorios">
+            <i class="bi bi-bar-chart-line me-1"></i> Relatórios
+          </a>
+        </li>
+
+        <!-- Cadastros Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= currentPath.startsWith('/cadastros') ? 'active' : '' %>" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="bi bi-database me-1"></i> Cadastros
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/cadastros/emitentes"><i class="bi bi-building me-2"></i> Emitentes</a></li>
+            <li><a class="dropdown-item" href="/cadastros/clientes"><i class="bi bi-people me-2"></i> Clientes</a></li>
+            <li><a class="dropdown-item" href="/cadastros/produtos"><i class="bi bi-tag me-2"></i> Produtos</a></li>
+            <li><a class="dropdown-item" href="/cadastros/transportadoras"><i class="bi bi-truck-front me-2"></i> Transportadoras</a></li>
+            <li><a class="dropdown-item" href="/cadastros/motoristas"><i class="bi bi-person-badge me-2"></i> Motoristas</a></li>
+          </ul>
+        </li>
+
+        <% if (currentUser && currentUser.perfil === 'administrador') { %>
+        <!-- Administração Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="bi bi-shield-lock me-1"></i> Administração
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/admin/usuarios"><i class="bi bi-person-gear me-2"></i> Usuários e Permissões</a></li>
+            <li><a class="dropdown-item" href="/admin/historico"><i class="bi bi-clock-history me-2"></i> Histórico / Auditoria</a></li>
+            <li><a class="dropdown-item" href="/admin/backup"><i class="bi bi-hdd-network me-2"></i> Backup e Recuperação</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/admin/rede"><i class="bi bi-wifi me-2"></i> Acesso pela Rede Local</a></li>
+          </ul>
+        </li>
+        <% } %>
+      </ul>
+
+      <!-- User Info & Logout -->
+      <div class="d-flex align-items-center">
+        <% if (currentUser) { %>
+          <div class="text-white me-3 text-end d-none d-md-block">
+            <div class="fw-bold small"><%= currentUser.nome %></div>
+            <span class="badge bg-secondary text-uppercase" style="font-size: 0.65rem;"><%= currentUser.perfil %></span>
+          </div>
+          <a href="/logout" class="btn btn-outline-light btn-sm" title="Sair do sistema">
+            <i class="bi bi-box-arrow-right"></i> Sair
+          </a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</nav>
