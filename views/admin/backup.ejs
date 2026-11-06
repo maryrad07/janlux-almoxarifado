@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1100px;">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Segurança, Backup e Recuperação</h4>
+      <p class="text-muted small mb-0">Rotinas de cópia de segurança, integridade dos dados e procedimento de restauração</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <form action="/admin/backup/criar" method="POST" onsubmit="return confirm('Deseja gerar uma nova cópia de segurança completa do banco de dados agora?');">
+        <button type="submit" class="btn btn-janlux">
+          <i class="bi bi-cloud-arrow-down me-1"></i> Criar Backup Imediato
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Card Informativo sobre a Política de Backup -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card card-janlux p-4 h-100">
+        <h6 class="fw-bold text-navy mb-2"><i class="bi bi-shield-check text-success me-2"></i> Armazenamento e Integridade</h6>
+        <p class="text-muted small mb-3">
+          O banco central da JANLUX opera com tecnologia SQLite em modo <strong>WAL (Write-Ahead Logging)</strong>, garantindo máxima confiabilidade contra corrupção e permitindo que múltiplos computadores da rede interna façam consultas e registros simultâneos.
+        </p>
+        <ul class="small text-muted mb-0 ps-3">
+          <li><strong>Banco Principal:</strong> <code>data/janlux.db</code></li>
+          <li><strong>Pasta de Backups:</strong> <code>backups/</code></li>
+          <li><strong>Pasta de PDFs:</strong> <code>pdfs/</code> (Comprovantes gerados)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card card-janlux p-4 h-100 border-warning">
+        <h6 class="fw-bold text-navy mb-2"><i class="bi bi-info-circle text-warning me-2"></i> Recomendações Operacionais</h6>
+        <p class="text-muted small mb-3">
+          Para máxima proteção contra falhas físicas no computador principal, recomenda-se copiar periodicamente a pasta <code>backups/</code> para uma unidade externa (pendrive) ou pasta de rede espelhada.
+        </p>
+        <div class="alert alert-warning py-2 px-3 small mb-0">
+          <i class="bi bi-exclamation-triangle me-1"></i> A restauração de um backup anterior substituirá a base de dados ativa. Uma cópia de segurança pré-restauração é salva automaticamente.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela de Backups Existentes -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-hdd-network me-2"></i> Cópias de Segurança Disponíveis (<%= backups.length %> arquivos)</h6>
+      <span class="small text-muted">Ordem cronológica inversa</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Nome do Arquivo</th>
+            <th>Data de Criação</th>
+            <th>Tamanho</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (backups.length === 0) { %>
+            <tr><td colspan="4" class="text-center text-muted py-4">Nenhum backup gerado ainda. Clique em "Criar Backup Imediato" acima.</td></tr>
+          <% } else { %>
+            <% backups.forEach((b, idx) => { %>
+              <tr>
+                <td class="fw-bold text-navy">
+                  <i class="bi bi-file-earmark-binary text-primary me-1"></i> <%= b.nome %>
+                  <% if (idx === 0) { %>
+                    <span class="badge bg-success-subtle text-success ms-2">Mais Recente</span>
+                  <% } %>
+                </td>
+                <td><%= b.criadoEm %></td>
+                <td><span class="badge bg-light text-dark border"><%= b.tamanhoKb %> KB</span></td>
+                <td class="text-end">
+                  <form action="/admin/backup/restaurar" method="POST" class="d-inline" onsubmit="return confirm('ATENÇÃO: Deseja realmente restaurar os dados a partir de <%= b.nome %>? Os registros posteriores serão sobrescritos!');">
+                    <input type="hidden" name="arquivo" value="<%= b.nome %>">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                      <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Este
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
