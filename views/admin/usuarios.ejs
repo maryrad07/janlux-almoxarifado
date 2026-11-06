@@ -1,0 +1,154 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1100px;">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Gerenciamento de Usuários e Permissões</h4>
+      <p class="text-muted small mb-0">Controle de acessos individuais (Administrador, Operacional, Consulta)</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <button type="button" class="btn btn-janlux" data-bs-toggle="modal" data-bs-target="#modalUsuario" onclick="limparFormUsuario()">
+        <i class="bi bi-person-plus me-1"></i> Novo Usuário
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="card card-janlux">
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Login</th>
+            <th>Perfil de Acesso</th>
+            <th>Situação</th>
+            <th>Criado Em</th>
+            <th>Última Atualização</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% usuarios.forEach(u => { %>
+            <tr>
+              <td class="fw-bold text-navy"><%= u.nome %></td>
+              <td><code><%= u.login %></code></td>
+              <td>
+                <% if (u.perfil === 'administrador') { %>
+                  <span class="badge bg-danger">ADMINISTRADOR</span>
+                <% } else if (u.perfil === 'operacional') { %>
+                  <span class="badge bg-primary">OPERACIONAL</span>
+                <% } else { %>
+                  <span class="badge bg-secondary">CONSULTA</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (u.ativo) { %>
+                  <span class="badge bg-success-subtle text-success">Ativo</span>
+                <% } else { %>
+                  <span class="badge bg-danger-subtle text-danger">Inativo</span>
+                <% } %>
+              </td>
+              <td><small class="text-muted"><%= u.criado_em %></small></td>
+              <td><small class="text-muted"><%= u.atualizado_em %></small></td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick='editarUsuario(<%= JSON.stringify(u) %>)' title="Editar Usuário">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Usuário -->
+<div class="modal fade" id="modalUsuario" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/admin/usuarios/salvar" method="POST">
+        <input type="hidden" name="id" id="userId">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy" id="userModalTitle">Cadastrar Usuário</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nome Completo <span class="text-danger">*</span></label>
+            <input type="text" name="nome" id="userNome" class="form-control" placeholder="ex: Sandra da Silva" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Login / Usuário <span class="text-danger">*</span></label>
+            <input type="text" name="login" id="userLogin" class="form-control" placeholder="ex: sandra" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" id="senhaLabel">Senha <span class="text-danger">*</span></label>
+            <input type="password" name="senha" id="userSenha" class="form-control" placeholder="••••••••">
+            <small class="text-muted" id="senhaHelp" style="display: none; font-size: 0.75rem;">Deixe em branco para manter a senha atual.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Perfil de Acesso <span class="text-danger">*</span></label>
+            <select name="perfil" id="userPerfil" class="form-select" required>
+              <option value="operacional">Operacional (Registra NFs, coletas, embalagens, conferência)</option>
+              <option value="administrador">Administrador (Controle total, cadastros, usuários, backup)</option>
+              <option value="consulta">Consulta (Apenas visualização e relatórios)</option>
+            </select>
+          </div>
+          <div class="form-check" id="boxAtivo">
+            <input class="form-check-input" type="checkbox" name="ativo" id="userAtivo" value="1" checked>
+            <label class="form-check-label small" for="userAtivo">Usuário Ativo</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Usuário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function limparFormUsuario() {
+    document.getElementById('userId').value = '';
+    document.getElementById('userNome').value = '';
+    document.getElementById('userLogin').value = '';
+    document.getElementById('userSenha').value = '';
+    document.getElementById('userSenha').required = true;
+    document.getElementById('userPerfil').value = 'operacional';
+    document.getElementById('userAtivo').checked = true;
+    document.getElementById('senhaHelp').style.display = 'none';
+    document.getElementById('userModalTitle').innerText = 'Cadastrar Novo Usuário';
+  }
+
+  function editarUsuario(u) {
+    document.getElementById('userId').value = u.id;
+    document.getElementById('userNome').value = u.nome;
+    document.getElementById('userLogin').value = u.login;
+    document.getElementById('userSenha').value = '';
+    document.getElementById('userSenha').required = false;
+    document.getElementById('userPerfil').value = u.perfil;
+    document.getElementById('userAtivo').checked = u.ativo === 1;
+    document.getElementById('senhaHelp').style.display = 'block';
+    document.getElementById('userModalTitle').innerText = 'Editar Usuário';
+    new bootstrap.Modal(document.getElementById('modalUsuario')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
