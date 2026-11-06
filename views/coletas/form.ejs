@@ -1,0 +1,208 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1200px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Registrar Retirada de Mercadorias (Coleta)</h4>
+      <p class="text-muted small mb-0">Associe as notas fiscais retiradas, identifique o motorista e gere automaticamente o comprovante em PDF</p>
+    </div>
+    <a href="/coletas" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <% if (typeof err !== 'undefined' && err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <form action="/coletas/salvar" method="POST" id="formColeta" onsubmit="return validarEnvioColeta();">
+    <!-- Bloco 1: Dados da Retirada e Transportador -->
+    <div class="card card-janlux p-4 mb-4">
+      <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+        <i class="bi bi-truck me-1"></i> 1. Identificação da Coleta, Transportadora e Motorista
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Número da Coleta <span class="text-danger">*</span></label>
+          <input type="text" name="numero" class="form-control fw-bold text-primary" value="<%= numeroSugerido %>" required>
+          <small class="text-muted" style="font-size: 0.75rem;">Gerado automaticamente</small>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Data Efetiva da Retirada <span class="text-danger">*</span></label>
+          <input type="date" name="data_retirada" class="form-control" value="<%= agoraData %>" required>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Horário Efetivo da Retirada <span class="text-danger">*</span></label>
+          <input type="time" name="hora_retirada" class="form-control" value="<%= agoraHora %>" required>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Funcionário JANLUX (Liberação) <span class="text-danger">*</span></label>
+          <input type="text" name="funcionario_liberacao" class="form-control" value="<%= funcionarioPadrao %>" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Transportadora <span class="text-danger">*</span></label>
+          <select name="transportadora_id" id="transpSelect" class="form-select" onchange="filtrarNFsPorTransportadora(this)">
+            <option value="">Selecione a transportadora...</option>
+            <% transportadoras.forEach(t => { %>
+              <option value="<%= t.id %>"><%= t.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Ou Nova Transportadora (se não listada)</label>
+          <input type="text" name="transportadora_nome_novo" class="form-control" placeholder="Razão social da transportadora...">
+        </div>
+
+        <div class="col-md-5">
+          <label class="form-label small fw-semibold">Nome Completo do Motorista / Responsável <span class="text-danger">*</span></label>
+          <input type="text" name="motorista_nome" id="motoristaNomeInput" class="form-control" placeholder="ex: Carlos Alberto Santos" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Documento de Identificação (RG / CPF) <span class="text-danger">*</span></label>
+          <input type="text" name="motorista_documento" id="motoristaDocInput" class="form-control" placeholder="ex: 12.345.678-9 ou CPF" required>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Placa do Veículo (se aplicável)</label>
+          <input type="text" name="placa_veiculo" class="form-control text-uppercase" placeholder="ABC-1234">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Observações da Coleta</label>
+          <textarea name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Observações específicas sobre o transporte, condições climáticas, lacres..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bloco 2: Seleção das Notas Fiscais (Uma coleta pode ter várias NFs - Seção 8.2) -->
+    <div class="card card-janlux p-4 mb-4" style="border-left: 4px solid #007bff;">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <div>
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="bi bi-receipt-cutoff me-1"></i> 2. Relação de Notas Fiscais Retiradas nesta Coleta
+          </h6>
+          <small class="text-muted">
+            Selecione as NFs que estão sendo embarcadas. O total de volumes físicos será somado automaticamente.
+          </small>
+        </div>
+        <div>
+          <span class="badge bg-primary fs-6 px-3 py-2" id="badgeTotalVolumes">
+            Total Selecionado: 0 volume(s) em 0 NF(s)
+          </span>
+        </div>
+      </div>
+
+      <% if (expedicoesDisponiveis.length === 0) { %>
+        <div class="alert alert-warning text-center py-4">
+          <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+          Não há notas fiscais pendentes de coleta no momento.
+          <div class="mt-2">
+            <a href="/expedicoes/nova" class="btn btn-sm btn-janlux">Cadastrar Nova Expedição</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-hover table-sm align-middle" id="tabelaSelecaoNFs">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="width: 5%;" class="text-center">
+                  <input type="checkbox" id="checkTodos" onchange="selecionarTodos(this)">
+                </th>
+                <th style="width: 20%;">Nota Fiscal</th>
+                <th style="width: 40%;">Cliente / Destinatário</th>
+                <th style="width: 20%;">Transp. Prevista</th>
+                <th style="width: 15%;" class="text-end">Volumes Físicos</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% expedicoesDisponiveis.forEach(exp => { %>
+                <tr class="linha-nf" data-transp="<%= exp.transportadora_prevista ? exp.transportadora_prevista.toUpperCase() : '' %>">
+                  <td class="text-center">
+                    <input type="checkbox" name="expedicoes_selecionadas" value="<%= exp.id %>" class="form-check-input check-nf" data-vols="<%= exp.volumes_fisicos || 1 %>" onchange="calcularTotais()">
+                  </td>
+                  <td class="fw-bold text-navy">
+                    NF <%= exp.numero_nf %>
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-truncate" style="max-width: 280px;" title="<%= exp.cliente_nome %>">
+                      <%= exp.cliente_nome %>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-light text-muted border"><%= exp.transportadora_prevista || 'A definir' %></span></td>
+                  <td class="text-end fw-bold text-dark"><%= exp.volumes_fisicos || 1 %> vol(s)</td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Bloco 3: Confirmação e Geração do Comprovante A4 -->
+    <div class="card card-janlux p-4 mb-4 bg-light border-warning">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-file-earmark-pdf-fill text-danger fs-2 me-3"></i>
+        <div>
+          <h6 class="fw-bold text-navy mb-1">Geração Automática do Comprovante de Retirada (PDF A4)</h6>
+          <p class="text-muted small mb-0">
+            Ao salvar, o sistema irá gerar e disponibilizar instantaneamente o documento formatado em A4 com:
+            <strong>cabeçalho oficial JANLUX, relação discriminada de todas as NFs, total geral de volumes físicos, declaração de responsabilidade e campos para assinatura física do motorista e funcionário.</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-5">
+      <a href="/coletas" class="btn btn-outline-secondary px-4">Cancelar</a>
+      <button type="submit" class="btn btn-success px-5 fw-bold" id="btnSalvarColeta">
+        <i class="bi bi-check-circle me-1"></i> Confirmar Coleta e Gerar Comprovante PDF
+      </button>
+    </div>
+  </form>
+</main>
+
+<script>
+  function calcularTotais() {
+    const checks = document.querySelectorAll('.check-nf:checked');
+    let totalNFs = checks.length;
+    let totalVols = 0;
+    checks.forEach(c => {
+      totalVols += parseInt(c.getAttribute('data-vols'), 10) || 1;
+    });
+
+    document.getElementById('badgeTotalVolumes').innerText = 
+      `Total Selecionado: ${totalVols} volume(s) em ${totalNFs} NF(s)`;
+  }
+
+  function selecionarTodos(master) {
+    const checks = document.querySelectorAll('.check-nf');
+    checks.forEach(c => {
+      // só marca os visíveis
+      if (c.closest('tr').style.display !== 'none') {
+        c.checked = master.checked;
+      }
+    });
+    calcularTotais();
+  }
+
+  function validarEnvioColeta() {
+    const checks = document.querySelectorAll('.check-nf:checked');
+    if (checks.length === 0) {
+      alert('Por favor, selecione pelo menos uma Nota Fiscal para a coleta.');
+      return false;
+    }
+    return true;
+  }
+</script>
+
+<%- include('../partials/footer') %>
