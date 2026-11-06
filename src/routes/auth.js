@@ -42,7 +42,7 @@ router.post('/login', async (req, res) => {
     res.redirect(redirectUrl);
   } catch (err) {
     console.error('[AUTH] Erro no login:', err);
-    res.render('login', { error: 'Erro interno. Tente novamente.', msg: null });
+    res.render('login', { error: 'Erro no login: ' + err.message, msg: null });
   }
 });
 
