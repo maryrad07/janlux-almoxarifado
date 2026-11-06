@@ -1,0 +1,155 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Preparação e Expedição de Mercadorias</h4>
+      <p class="text-muted small mb-0">Acompanhamento de pedidos desde a emissão da nota fiscal até a liberação para transporte</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <a href="/expedicoes/nova" class="btn btn-janlux">
+        <i class="bi bi-plus-circle me-1"></i> Nova Expedição
+      </a>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/expedicoes" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Pesquisa Rápida</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Nº NF, Cliente ou Responsável..." value="<%= filtros.busca || '' %>">
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Status</label>
+        <select name="status_id" class="form-select form-select-sm">
+          <option value="">Todos os status</option>
+          <% statusList.forEach(s => { %>
+            <option value="<%= s.id %>" <%= filtros.status_id == s.id ? 'selected' : '' %>><%= s.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Transportadora</label>
+        <select name="transportadora_id" class="form-select form-select-sm">
+          <option value="">Todas as transportadoras</option>
+          <% transportadoras.forEach(t => { %>
+            <option value="<%= t.id %>" <%= filtros.transportadora_id == t.id ? 'selected' : '' %>><%= t.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Período De</label>
+        <input type="date" name="data_inicio" class="form-control form-control-sm" value="<%= filtros.data_inicio || '' %>">
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Até</label>
+        <input type="date" name="data_fim" class="form-control form-control-sm" value="<%= filtros.data_fim || '' %>">
+      </div>
+
+      <div class="col-md-1 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100" title="Filtrar">
+          <i class="bi bi-funnel"></i>
+        </button>
+        <a href="/expedicoes" class="btn btn-outline-secondary btn-sm" title="Limpar">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Registros -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= expedicoes.length %> registros</span>
+      <span class="small text-muted">Datas no padrão DD/MM/AAAA &bull; Horários em 24h</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Data Op.</th>
+            <th>Nº NF</th>
+            <th>Cliente / Destinatário</th>
+            <th>Transportadora</th>
+            <th>Volumes</th>
+            <th>Produtos</th>
+            <th>Conferência</th>
+            <th>Status</th>
+            <th>Responsável</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (expedicoes.length === 0) { %>
+            <tr><td colspan="10" class="text-center text-muted py-5">Nenhuma expedição encontrada com os filtros informados.</td></tr>
+          <% } else { %>
+            <% expedicoes.forEach(exp => { %>
+              <tr>
+                <td><%= formatDateBR(exp.data_disponibilizacao || exp.data_emissao) %></td>
+                <td class="fw-bold text-navy"><%= exp.numero_nf %></td>
+                <td>
+                  <div class="fw-semibold text-truncate" style="max-width: 220px;" title="<%= exp.cliente_nome %>">
+                    <% if (exp.cliente_codigo) { %>
+                      <span class="badge bg-light text-primary border me-1" style="font-size: 0.72rem;"><%= exp.cliente_codigo %></span>
+                    <% } %>
+                    <%= exp.cliente_nome %>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-truncate" style="max-width: 140px;" title="<%= exp.transportadora_nome %>">
+                    <%= exp.transportadora_nome || 'N/A' %>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">
+                    <%= exp.total_volumes_fisicos || 1 %> vol
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-light text-muted border">
+                    <%= exp.total_produtos || 1 %> un
+                  </span>
+                </td>
+                <td>
+                  <% if (exp.conferencia_realizada) { %>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      <i class="bi bi-check-circle me-1"></i> SIM
+                    </span>
+                  <% } else { %>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                      <i class="bi bi-clock me-1"></i> PENDENTE
+                    </span>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="badge badge-status" style="background-color: <%= exp.status_cor %>; color: #fff;">
+                    <%= exp.status_nome %>
+                  </span>
+                </td>
+                <td>
+                  <span class="small text-muted"><%= exp.responsavel_preparacao || '-' %></span>
+                </td>
+                <td class="text-end">
+                  <a href="/expedicoes/<%= exp.id %>" class="btn btn-sm btn-outline-primary py-0 px-2" title="Visualizar / Editar / Conferir">
+                    <i class="bi bi-eye"></i> Detalhes
+                  </a>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
