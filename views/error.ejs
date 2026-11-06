@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<% if (currentUser) { %>
+  <%- include('partials/navbar') %>
+<% } %>
+
+<main class="container-fluid d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+  <div class="card card-janlux p-5 text-center" style="max-width: 550px;">
+    <div class="mb-3">
+      <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3.5rem;"></i>
+    </div>
+    <h3 class="fw-bold text-navy mb-2"><%= title || 'Ocorreu um Erro' %></h3>
+    <p class="text-muted mb-4"><%= mensagem || 'Não foi possível completar a operação solicitada.' %></p>
+    <div>
+      <a href="/dashboard" class="btn btn-janlux px-4 me-2">
+        <i class="bi bi-house-door me-1"></i> Ir para o Painel
+      </a>
+      <button onclick="window.history.back()" class="btn btn-outline-secondary px-4">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+      </button>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
