@@ -1,0 +1,484 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1200px;">
+  <!-- Top Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold mb-0 text-navy">Expedição &bull; Nota Fiscal nº <%= expedicao.numero_nf %></h4>
+        <span class="badge badge-status" style="background-color: <%= expedicao.status_cor %>; color: #fff;">
+          <%= expedicao.status_nome %>
+        </span>
+        <% if (expedicao.conferencia_realizada) { %>
+          <span class="badge bg-success-subtle text-success border border-success-subtle">
+            <i class="bi bi-check-circle me-1"></i> Conferida
+          </span>
+        <% } else { %>
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+            <i class="bi bi-clock me-1"></i> Aguardando Conferência
+          </span>
+        <% } %>
+      </div>
+      <p class="text-muted small mb-0">Cadastrada em <%= expedicao.criado_em %> &bull; Responsável: <%= expedicao.responsavel_preparacao || 'Sandra / Ivan' %></p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-outline-warning text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalConferencia">
+        <i class="bi bi-clipboard-check me-1"></i> Registrar / Rever Conferência
+      </button>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalStatus">
+        <i class="bi bi-arrow-repeat me-1"></i> Alterar Status
+      </button>
+      <% if (session && session.user && session.user.perfil === 'administrador') { %>
+      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluirExp">
+        <i class="bi bi-trash3 me-1"></i> Excluir
+      </button>
+      <% } %>
+      <a href="/expedicoes" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Informações Principais da NF -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card card-janlux p-4 h-100">
+        <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+          <i class="bi bi-receipt me-1"></i> Dados da Operação e Destinatário
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <span class="text-muted small d-block">Número da NF:</span>
+            <span class="fw-bold fs-5 text-dark">NF <%= expedicao.numero_nf %></span>
+          </div>
+          <div class="col-md-5">
+            <span class="text-muted small d-block">Empresa Emitente:</span>
+            <span class="fw-bold text-navy"><%= expedicao.emitente_nome || 'JANLUX ELÉTRICOS LTDA.' %></span>
+            <small class="text-muted d-block font-monospace">CNPJ: <%= expedicao.cnpj_emitente || '00.000.000/0001-00' %></small>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Data de Emissão:</span>
+            <span class="fw-semibold"><%= formatDateBR(expedicao.data_emissao) %></span>
+          </div>
+
+          <div class="col-md-5">
+            <span class="text-muted small d-block">Cliente / Destinatário:</span>
+            <span class="fw-bold text-navy">
+              <% if (expedicao.cliente_codigo) { %>
+                <span class="badge bg-light text-primary border me-1"><%= expedicao.cliente_codigo %></span>
+              <% } %>
+              <%= expedicao.cliente_nome || expedicao.cliente_nome_cadastrado %>
+            </span>
+          </div>
+          <div class="col-md-3">
+            <span class="text-muted small d-block">CNPJ Destinatário:</span>
+            <span><%= expedicao.cnpj_destinatario || expedicao.cliente_cnpj || 'Não Informado' %></span>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Transportadora Prevista:</span>
+            <span class="fw-semibold text-primary"><%= expedicao.transportadora_nome || 'NÃO DEFINIDA' %></span>
+          </div>
+
+          <div class="col-md-4">
+            <span class="text-muted small d-block">NF Desceu em:</span>
+            <span><%= formatDateBR(expedicao.data_disponibilizacao) %> às <%= expedicao.hora_disponibilizacao || '--:--' %></span>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Início Preparação:</span>
+            <span><%= formatDateBR(expedicao.data_inicio_preparacao) %> às <%= expedicao.hora_inicio_preparacao || '--:--' %></span>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Caixa Ficou Pronta:</span>
+            <span><%= formatDateBR(expedicao.data_pronta) %> às <%= expedicao.hora_pronta || '--:--' %></span>
+          </div>
+
+          <% if (expedicao.observacoes) { %>
+            <div class="col-12">
+              <span class="text-muted small d-block">Observações Gerais:</span>
+              <div class="p-2 bg-light rounded small border"><%= expedicao.observacoes %></div>
+            </div>
+          <% } %>
+
+          <% if (expedicao.anotacoes) { %>
+            <div class="col-12">
+              <span class="text-muted small d-block">Anotações / Lembretes:</span>
+              <div class="p-2 bg-warning-subtle text-dark rounded small border border-warning-subtle"><%= expedicao.anotacoes %></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status da Coleta e Conferência -->
+    <div class="col-md-4">
+      <div class="card card-janlux p-4 mb-3">
+        <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+          <i class="bi bi-truck me-1"></i> Situação da Coleta
+        </h6>
+        <% if (coletaVinculada) { %>
+          <div class="alert alert-success py-2 px-3 mb-2 small">
+            <i class="bi bi-check-circle-fill me-1"></i> Mercadoria Coletada
+          </div>
+          <div class="small">
+            <div><strong>Nº Coleta:</strong> <a href="/coletas/<%= coletaVinculada.id %>" class="fw-bold"><%= coletaVinculada.numero %></a></div>
+            <div><strong>Data Retirada:</strong> <%= formatDateBR(coletaVinculada.data_retirada) %> às <%= coletaVinculada.hora_retirada %></div>
+            <div><strong>Motorista:</strong> <%= coletaVinculada.motorista_nome || 'N/A' %></div>
+            <div><strong>Placa:</strong> <%= coletaVinculada.placa_veiculo || 'N/A' %></div>
+            <div><strong>Volumes Entregues:</strong> <%= coletaVinculada.quantidade_volumes %> volume(s)</div>
+          </div>
+        <% } else { %>
+          <div class="alert alert-warning py-2 px-3 mb-2 small">
+            <i class="bi bi-clock-history me-1"></i> Aguardando Retirada pelo Transportador
+          </div>
+          <p class="text-muted small mb-0">Esta nota fiscal ainda não foi associada a nenhuma coleta física confirmada.</p>
+        <% } %>
+      </div>
+
+      <div class="card card-janlux p-4">
+        <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+          <i class="bi bi-shield-check me-1"></i> Conferência da Mercadoria
+        </h6>
+        <% if (expedicao.conferencia_realizada) { %>
+          <div class="text-success small mb-2"><i class="bi bi-check-circle-fill"></i> Conferência Aprovada</div>
+          <div class="small">
+            <div><strong>Conferido por:</strong> <%= expedicao.responsavel_conferencia || 'Sandra / Ivan' %></div>
+            <div><strong>Data/Hora:</strong> <%= formatDateBR(expedicao.data_conferencia) %> <%= expedicao.hora_conferencia || '' %></div>
+            <div><strong>Obs:</strong> <%= expedicao.conferencia_observacoes || 'Nenhuma divergência' %></div>
+          </div>
+        <% } else { %>
+          <div class="text-warning small mb-2"><i class="bi bi-exclamation-circle-fill"></i> Conferência Pendente</div>
+          <p class="text-muted small mb-2">A mercadoria deve ser conferida antes da liberação final ao transportador.</p>
+          <button class="btn btn-sm btn-outline-warning text-dark w-100" data-bs-toggle="modal" data-bs-target="#modalConferencia">
+            Realizar Conferência Agora
+          </button>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duas Tabelas: Produtos (Itens) vs Volumes Físicos (Caixas) - Seção 7 -->
+  <div class="row g-4 mb-4">
+    <!-- Tabela 1: Produtos Comerciais -->
+    <div class="col-lg-6">
+      <div class="card card-janlux h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-navy">
+            <i class="bi bi-tags me-1"></i> 1. Produtos da Nota Fiscal (<%= itens.length %> itens)
+          </h6>
+          <span class="badge bg-primary-subtle text-primary">
+            Total: <%= itens.reduce((a, b) => a + b.quantidade, 0) %> un
+          </span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-janlux mb-0">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descrição do Produto</th>
+                <th class="text-end">Qtd</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (itens.length === 0) { %>
+                <tr><td colspan="3" class="text-center text-muted py-3">Nenhum produto discriminado.</td></tr>
+              <% } else { %>
+                <% itens.forEach(it => { %>
+                  <tr>
+                    <td class="fw-bold text-navy"><%= it.produto_codigo %></td>
+                    <td><%= it.produto_descricao %></td>
+                    <td class="text-end fw-semibold"><%= it.quantidade %> un</td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela 2: Volumes Físicos (Caixas / Pacotes) -->
+    <div class="col-lg-6">
+      <div class="card card-janlux h-100" style="border-top: 3px solid var(--janlux-accent);">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-navy">
+            <i class="bi bi-boxes me-1"></i> 2. Volumes Físicos Expedidos (<%= volumes.length %> volumes)
+          </h6>
+          <span class="badge bg-warning-subtle text-dark">
+            <%= volumes.reduce((a, b) => a + (b.peso_g || 0), 0) %> g total
+          </span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-janlux mb-0">
+            <thead>
+              <tr>
+                <th>Vol.</th>
+                <th>Tipo Embalagem</th>
+                <th>Dimensões (CxLxA)</th>
+                <th>Peso</th>
+                <th>Obs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (volumes.length === 0) { %>
+                <tr><td colspan="5" class="text-center text-muted py-3">Nenhum volume cadastrado.</td></tr>
+              <% } else { %>
+                <% volumes.forEach(v => { %>
+                  <tr>
+                    <td class="fw-bold text-center">#<%= v.numero_volume %></td>
+                    <td class="fw-semibold"><%= v.tipo_embalagem || 'Papelão' %></td>
+                    <td><%= v.comprimento_cm %> &times; <%= v.largura_cm %> &times; <%= v.altura_cm %> cm</td>
+                    <td><%= v.peso_g %> g</td>
+                    <td><small class="text-muted"><%= v.observacoes || '-' %></small></td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ocorrências / Divergências (se houver) -->
+  <% if (ocorrencias.length > 0) { %>
+    <div class="card card-janlux border-danger mb-4">
+      <div class="card-header bg-danger-subtle text-danger py-2 fw-bold">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i> Ocorrências e Divergências Registradas nesta Expedição
+      </div>
+      <div class="card-body p-3">
+        <ul class="list-group list-group-flush small">
+          <% ocorrencias.forEach(oc => { %>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <strong><%= oc.tipo %>:</strong> <%= oc.descricao %>
+                <div class="text-muted">Registrado em <%= oc.criado_em %> &bull; Status: <span class="badge bg-danger"><%= oc.status.toUpperCase() %></span></div>
+              </div>
+              <% if (oc.resolucao) { %>
+                <div class="text-success small"><strong>Resolução:</strong> <%= oc.resolucao %></div>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Histórico / Rastreabilidade da Expedição (Seção 13) -->
+  <div class="card card-janlux p-4 mb-5">
+    <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+      <i class="bi bi-clock-history me-1"></i> Histórico de Alterações e Rastreabilidade
+    </h6>
+    <% if (historico.length === 0) { %>
+      <p class="text-muted small mb-0">Nenhuma alteração registrada além da criação inicial.</p>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Usuário</th>
+              <th>Ação</th>
+              <th>Campo</th>
+              <th>Valor Anterior</th>
+              <th>Novo Valor</th>
+              <th>Motivo / Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% historico.forEach(h => { %>
+              <tr>
+                <td><%= h.criado_em %></td>
+                <td><strong><%= h.usuario_nome || 'Sistema' %></strong></td>
+                <td><span class="badge bg-secondary"><%= h.acao %></span></td>
+                <td><%= h.campo || '-' %></td>
+                <td class="text-muted"><%= h.valor_anterior || '-' %></td>
+                <td class="fw-bold text-dark"><%= h.valor_novo || '-' %></td>
+                <td><%= h.motivo || '-' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<!-- Modal: Alterar Status -->
+<div class="modal fade" id="modalStatus" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/expedicoes/<%= expedicao.id %>/status" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-navy">Atualizar Status da Expedição</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Novo Status</label>
+            <select name="status_id" class="form-select" required>
+              <% statusList.forEach(s => { %>
+                <option value="<%= s.id %>" <%= expedicao.status_id == s.id ? 'selected' : '' %>>
+                  <%= s.nome %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Motivo da Alteração</label>
+            <input type="text" name="motivo" class="form-control" placeholder="ex: Embalamento concluído, mercadoria pronta..." required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Confirmar Mudança</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Conferência da Mercadoria (Seção 6.3) -->
+<div class="modal fade" id="modalConferencia" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form action="/expedicoes/<%= expedicao.id %>/conferencia" method="POST">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy">
+            <i class="bi bi-clipboard-check me-2 text-warning"></i> Conferência Obrigatória de Mercadoria
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-info small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Confirme cada um dos quesitos físicos antes de liberar a mercadoria para a transportadora. Se houver divergência, informe no campo abaixo.
+          </div>
+
+          <div class="list-group mb-3">
+            <label class="list-group-item d-flex gap-3 align-items-center">
+              <input class="form-check-input flex-shrink-0" type="checkbox" name="conferencia_nf_ok" value="1" <%= expedicao.conferencia_nf_ok ? 'checked' : '' %>>
+              <div>
+                <strong class="d-block">1. Número da Nota Fiscal Correto</strong>
+                <span class="text-muted small">Confirmado NF <strong><%= expedicao.numero_nf %></strong> e série <strong><%= expedicao.serie_nf || '1' %></strong></span>
+              </div>
+            </label>
+
+            <label class="list-group-item d-flex gap-3 align-items-center">
+              <input class="form-check-input flex-shrink-0" type="checkbox" name="conferencia_cliente_ok" value="1" <%= expedicao.conferencia_cliente_ok ? 'checked' : '' %>>
+              <div>
+                <strong class="d-block">2. Cliente e Destinatário Corretos</strong>
+                <span class="text-muted small">Etiqueta e NF direcionadas para: <strong><%= expedicao.cliente_nome %></strong></span>
+              </div>
+            </label>
+
+            <label class="list-group-item d-flex gap-3 align-items-center">
+              <input class="form-check-input flex-shrink-0" type="checkbox" name="conferencia_volumes_ok" value="1" <%= expedicao.conferencia_volumes_ok ? 'checked' : '' %>>
+              <div>
+                <strong class="d-block">3. Quantidade de Volumes Físicos Conferida</strong>
+                <span class="text-muted small">Conferida a quantidade de <strong><%= volumes.length %> volume(s)</strong> físicos presentes</span>
+              </div>
+            </label>
+
+            <label class="list-group-item d-flex gap-3 align-items-center">
+              <input class="form-check-input flex-shrink-0" type="checkbox" name="conferencia_embalagens_ok" value="1" <%= expedicao.conferencia_embalagens_ok ? 'checked' : '' %>>
+              <div>
+                <strong class="d-block">4. Identificação das Embalagens e Lacres</strong>
+                <span class="text-muted small">Caixas identificadas, fitas e etiquetas JANLUX devidamente fixadas</span>
+              </div>
+            </label>
+
+            <label class="list-group-item d-flex gap-3 align-items-center">
+              <input class="form-check-input flex-shrink-0" type="checkbox" name="conferencia_condicoes_ok" value="1" <%= expedicao.conferencia_condicoes_ok ? 'checked' : '' %>>
+              <div>
+                <strong class="d-block">5. Condições Aparentes dos Volumes</strong>
+                <span class="text-muted small">Sem avarias, amassados, umidade ou violação</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações da Conferência</label>
+            <textarea name="conferencia_observacoes" class="form-control form-control-sm" rows="2" placeholder="Observações adicionais ou detalhes da inspeção..."><%= expedicao.conferencia_observacoes || '' %></textarea>
+          </div>
+
+          <!-- Seção de Divergência -->
+          <div class="border rounded p-3 bg-light">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" name="houve_divergencia" id="checkDivergencia" value="1">
+              <label class="form-check-label fw-bold text-danger" for="checkDivergencia">
+                HOUVE DIVERGÊNCIA NESTA CONFERÊNCIA
+              </label>
+            </div>
+            <div id="boxDivergencia" style="display: none;">
+              <label class="form-label small fw-semibold text-danger">Descreva a divergência encontrada:</label>
+              <textarea name="divergencia_descricao" class="form-control form-control-sm" rows="2" placeholder="ex: Quantidade de produtos divergente da NF; volume danificado..."></textarea>
+              <small class="text-danger d-block mt-1">Ao marcar divergência, a conferência NÃO será aprovada e uma ocorrência será aberta.</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Registro da Conferência</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('checkDivergencia').addEventListener('change', function() {
+    document.getElementById('boxDivergencia').style.display = this.checked ? 'block' : 'none';
+  });
+</script>
+
+<!-- Modal: Confirmar Exclusão da Expedição -->
+<div class="modal fade" id="modalExcluirExp" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash3-fill me-2"></i>Confirmar Exclusão da Expedição</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/expedicoes/<%= expedicao.id %>/excluir" method="POST">
+        <div class="modal-body">
+          <div class="alert alert-danger mb-3">
+            <strong>Atenção!</strong> Esta ação é irreversível. A Expedição NF <strong><%= expedicao.numero_nf %></strong>
+            e todos os seus itens e volumes serão permanentemente excluídos do sistema.
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Motivo da exclusão <span class="text-muted">(opcional)</span></label>
+            <textarea name="motivo_exclusao" class="form-control form-control-sm" rows="2"
+              placeholder="ex: NF cancelada, lançamento duplicado..."></textarea>
+          </div>
+          <p class="small text-muted mb-0">
+            <i class="bi bi-shield-lock me-1"></i>Somente administradores podem excluir registros.
+            A ação será registrada no histórico do sistema.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">
+            <i class="bi bi-trash3 me-1"></i>Excluir Definitivamente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
