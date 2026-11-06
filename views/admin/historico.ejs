@@ -1,0 +1,99 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="mb-3">
+    <h4 class="fw-bold mb-1 text-navy">Histórico e Rastreabilidade (Audit Log)</h4>
+    <p class="text-muted small mb-0">Rastreabilidade completa de todas as alterações, exclusões, movimentações e registros do sistema</p>
+  </div>
+
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/admin/historico" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Módulo / Tabela</label>
+        <select name="tabela" class="form-select form-select-sm">
+          <option value="">Todas as Tabelas</option>
+          <option value="expedicoes" <%= tabela === 'expedicoes' ? 'selected' : '' %>>Expedições</option>
+          <option value="coletas" <%= tabela === 'coletas' ? 'selected' : '' %>>Coletas</option>
+          <option value="comprovantes" <%= tabela === 'comprovantes' ? 'selected' : '' %>>Comprovantes</option>
+          <option value="embalagens" <%= tabela === 'embalagens' ? 'selected' : '' %>>Embalagens</option>
+          <option value="movimentacoes_embalagens" <%= tabela === 'movimentacoes_embalagens' ? 'selected' : '' %>>Movimentações de Estoque</option>
+          <option value="usuarios" <%= tabela === 'usuarios' ? 'selected' : '' %>>Usuários</option>
+          <option value="clientes" <%= tabela === 'clientes' ? 'selected' : '' %>>Clientes</option>
+          <option value="produtos" <%= tabela === 'produtos' ? 'selected' : '' %>>Produtos</option>
+          <option value="transportadoras" <%= tabela === 'transportadoras' ? 'selected' : '' %>>Transportadoras</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small fw-semibold">Pesquisa Livre</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Usuário, motivo ou descrição..." value="<%= busca %>">
+        </div>
+      </div>
+
+      <div class="col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/admin/historico" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= historico.length %> eventos auditados</span>
+      <span class="small text-muted"><i class="bi bi-lock-fill text-success"></i> Registros imutáveis de auditoria</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Data / Horário</th>
+            <th>Usuário</th>
+            <th>Módulo</th>
+            <th>ID Registro</th>
+            <th>Tipo de Ação</th>
+            <th>Campo</th>
+            <th>Valor Anterior</th>
+            <th>Novo Valor</th>
+            <th>Motivo / Justificativa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (historico.length === 0) { %>
+            <tr><td colspan="9" class="text-center text-muted py-5">Nenhum evento registrado com os filtros informados.</td></tr>
+          <% } else { %>
+            <% historico.forEach(h => { %>
+              <tr>
+                <td><small class="text-muted"><%= h.criado_em %></small></td>
+                <td><strong><%= h.usuario_nome || 'Sistema' %></strong></td>
+                <td><span class="badge bg-light text-dark border"><%= h.tabela %></span></td>
+                <td>#<%= h.registro_id %></td>
+                <td>
+                  <% if (h.acao === 'criacao') { %>
+                    <span class="badge bg-success">Criação</span>
+                  <% } else if (h.acao === 'alteracao') { %>
+                    <span class="badge bg-warning text-dark">Alteração</span>
+                  <% } else if (h.acao === 'status') { %>
+                    <span class="badge bg-info text-dark">Status</span>
+                  <% } else if (h.acao === 'conferencia') { %>
+                    <span class="badge bg-primary">Conferência</span>
+                  <% } else { %>
+                    <span class="badge bg-secondary"><%= h.acao %></span>
+                  <% } %>
+                </td>
+                <td><code><%= h.campo || '-' %></code></td>
+                <td class="text-muted small"><%= h.valor_anterior || '-' %></td>
+                <td class="fw-bold small text-navy"><%= h.valor_novo || '-' %></td>
+                <td><small><%= h.motivo || '-' %></small></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
