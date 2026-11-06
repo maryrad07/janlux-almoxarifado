@@ -1,0 +1,417 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1200px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Nova Expedição de Mercadoria</h4>
+      <p class="text-muted small mb-0">Cadastre a nota fiscal, relacione os produtos e defina os volumes físicos para transporte</p>
+    </div>
+    <a href="/expedicoes" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar para Lista
+    </a>
+  </div>
+
+  <form action="/expedicoes/salvar" method="POST" id="formExpedicao">
+    <!-- Bloco 1: Identificação do Emitente, Nota Fiscal e Destinatário -->
+    <div class="card card-janlux p-4 mb-4">
+      <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+        <i class="bi bi-receipt me-1"></i> 1. Identificação do Emitente, Nota Fiscal e Destinatário
+      </h6>
+      <div class="row g-3">
+        <!-- Identificação do Emitente -->
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Empresa Emitente <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-building"></i></span>
+            <select name="emitente_id" id="emitenteSelect" class="form-select fw-semibold" onchange="selecionarEmitente(this)">
+              <% if (typeof emitentes !== 'undefined' && emitentes && emitentes.length > 0) { %>
+                <% emitentes.forEach(emi => { %>
+                  <option value="<%= emi.id %>" data-cnpj="<%= emi.cnpj %>" data-nome="<%= emi.razao_social %>" <%= emi.padrao ? 'selected' : '' %>>
+                    <%= emi.razao_social %> <%= emi.padrao ? '(Principal)' : '' %>
+                  </option>
+                <% }) %>
+              <% } else { %>
+                <option value="" data-cnpj="00.000.000/0001-00">JANLUX ELÉTRICOS LTDA.</option>
+              <% } %>
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">CNPJ do Emitente <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+            <% 
+              let cnpjPadrao = '00.000.000/0001-00';
+              if (typeof emitentes !== 'undefined' && emitentes && emitentes.length > 0) {
+                const ep = emitentes.find(e => e.padrao) || emitentes[0];
+                if (ep && ep.cnpj) cnpjPadrao = ep.cnpj;
+              }
+            %>
+            <input type="text" name="cnpj_emitente" id="cnpjEmitenteInput" class="form-control" value="<%= cnpjPadrao %>" placeholder="CNPJ da empresa emitente" required>
+          </div>
+        </div>
+
+        <!-- Dados da Nota Fiscal (Série excluída conforme solicitado) -->
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Número da Nota Fiscal (NF) <span class="text-danger">*</span></label>
+          <input type="text" name="numero_nf" class="form-control fw-bold" placeholder="ex: 10096" required autofocus>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Data de Emissão da NF</label>
+          <input type="date" name="data_emissao" class="form-control" value="<%= new Date().toISOString().slice(0, 10) %>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Transportadora Prevista</label>
+          <select name="transportadora_id" class="form-select">
+            <option value="">Selecione ou deixe em branco...</option>
+            <% transportadoras.forEach(t => { %>
+              <option value="<%= t.id %>"><%= t.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <!-- Identificação do Destinatário com Código do Cliente e Preenchimento Automático -->
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-primary">
+            <i class="bi bi-upc me-1"></i> Código do Cliente
+          </label>
+          <input type="text" name="cliente_codigo" id="clienteCodigoInput" class="form-control text-uppercase" placeholder="ex: CLI-0001" list="listaCodigosClientes" oninput="buscarPorCodigo(this.value)">
+          <datalist id="listaCodigosClientes">
+            <% clientes.forEach(c => { %>
+              <option value="<%= c.codigo %>"><%= c.razao_social %></option>
+            <% }) %>
+          </datalist>
+          <small class="text-muted" style="font-size: 0.72rem;">Digite o código p/ preencher o nome</small>
+        </div>
+
+        <div class="col-md-5">
+          <label class="form-label small fw-semibold">Nome / Razão Social do Cliente <span class="text-danger">*</span></label>
+          <select name="cliente_id" id="clienteSelect" class="form-select" onchange="selecionarClienteDropdown(this)">
+            <option value="">Selecione um cliente cadastrado ou digite o código ao lado...</option>
+            <% clientes.forEach(c => { %>
+              <option value="<%= c.id %>" data-codigo="<%= c.codigo || '' %>" data-nome="<%= c.razao_social %>" data-cnpj="<%= c.cnpj || '' %>">
+                <%= c.codigo ? '[' + c.codigo + '] ' : '' %><%= c.razao_social %> <%= c.cnpj ? '(' + c.cnpj + ')' : '' %>
+              </option>
+            <% }) %>
+          </select>
+          <input type="text" name="cliente_nome_novo" id="clienteNomeNovo" class="form-control form-control-sm mt-1" placeholder="Ou digite o nome de um novo cliente se não for cadastrado..." style="display: none;">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">CNPJ do Destinatário</label>
+          <input type="text" name="cnpj_destinatario" id="cnpjDestinatarioInput" class="form-control" placeholder="00.000.000/0000-00">
+          <div class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="checkNovoCliente" onchange="alternarNovoCliente(this)">
+            <label class="form-check-label small text-muted" for="checkNovoCliente">
+              Cadastrar como novo cliente
+            </label>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Data Disponibilização NF</label>
+          <input type="date" name="data_disponibilizacao" class="form-control" value="<%= new Date().toISOString().slice(0, 10) %>">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Horário em que a NF Desceu</label>
+          <input type="time" name="hora_disponibilizacao" class="form-control" value="<%= new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- Bloco 2: Produtos da Nota Fiscal (Itens Comercializados) -->
+    <div class="card card-janlux p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <div>
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="bi bi-tags me-1"></i> 2. Produtos Comercializados na Nota Fiscal
+          </h6>
+          <small class="text-muted">Itens constantes na NF. Podem ser acondicionados em 1 ou mais volumes físicos.</small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarProduto()">
+          <i class="bi bi-plus-lg me-1"></i> Adicionar Produto
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle" id="tabelaProdutos">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 30%;">Código do Produto</th>
+              <th style="width: 50%;">Descrição do Produto</th>
+              <th style="width: 15%;">Quantidade</th>
+              <th style="width: 5%;"></th>
+            </tr>
+          </thead>
+          <tbody id="produtosBody">
+            <tr>
+              <td>
+                <input type="text" name="prod_codigo" class="form-control form-control-sm" placeholder="ex: V012RT" list="listaProdutos" oninput="preencherDescricao(this)" required>
+              </td>
+              <td>
+                <input type="text" name="prod_descricao" class="form-control form-control-sm" placeholder="Descrição do item...">
+              </td>
+              <td>
+                <input type="number" name="prod_quantidade" class="form-control form-control-sm" value="1" min="1" required>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerLinha(this)" title="Remover"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Datalist para autocomplete de produtos -->
+      <datalist id="listaProdutos">
+        <% produtos.forEach(p => { %>
+          <option value="<%= p.codigo %>" data-desc="<%= p.descricao %>"><%= p.descricao %></option>
+        <% }) %>
+      </datalist>
+    </div>
+
+    <!-- Bloco 3: Volumes Físicos e Embalagens (Seção 7 - Diferenciação Obrigatória) -->
+    <div class="card card-janlux p-4 mb-4" style="border-left: 4px solid var(--janlux-accent);">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <div>
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="bi bi-boxes me-1"></i> 3. Volumes Físicos e Embalagens Efetivamente Utilizadas
+          </h6>
+          <small class="text-muted">
+            <strong>Atenção (Regra de Ouro):</strong> A quantidade de volumes físicos entregues ao transportador pode ser diferente da quantidade de produtos.
+          </small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="adicionarVolume()">
+          <i class="bi bi-plus-lg me-1"></i> Adicionar Volume Físico
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle" id="tabelaVolumes">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 5%;">Vol.</th>
+              <th style="width: 30%;">Tipo de Embalagem</th>
+              <th style="width: 15%;">Comprimento (cm)</th>
+              <th style="width: 15%;">Largura (cm)</th>
+              <th style="width: 15%;">Altura (cm)</th>
+              <th style="width: 15%;">Peso (g)</th>
+              <th style="width: 5%;"></th>
+            </tr>
+          </thead>
+          <tbody id="volumesBody">
+            <tr>
+              <td class="fw-bold text-center vol-num">1</td>
+              <td>
+                <select name="vol_embalagem_id" class="form-select form-select-sm" onchange="preencherDimensoes(this)">
+                  <% embalagens.forEach(emb => { %>
+                    <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= emb.peso_g %>">
+                      <%= emb.descricao %> (<%= emb.codigo %>)
+                    </option>
+                  <% }) %>
+                </select>
+              </td>
+              <td><input type="number" step="0.1" name="vol_comprimento" class="form-control form-control-sm" placeholder="cm" value="50"></td>
+              <td><input type="number" step="0.1" name="vol_largura" class="form-control form-control-sm" placeholder="cm" value="30"></td>
+              <td><input type="number" step="0.1" name="vol_altura" class="form-control form-control-sm" placeholder="cm" value="20"></td>
+              <td><input type="number" step="1" name="vol_peso" class="form-control form-control-sm" placeholder="gramas" value="1500"></td>
+              <td class="text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerVolume(this)" title="Remover"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bloco 4: Operação, Status e Observações -->
+    <div class="card card-janlux p-4 mb-4">
+      <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+        <i class="bi bi-person-check me-1"></i> 4. Responsáveis e Observações Operacionais
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Status Inicial</label>
+          <select name="status_id" class="form-select">
+            <% statusList.forEach(s => { %>
+              <option value="<%= s.id %>" <%= s.nome === 'Aguardando preparação' ? 'selected' : '' %>><%= s.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Responsável pela Preparação</label>
+          <input type="text" name="responsavel_preparacao" class="form-control" value="<%= currentUser.nome %>">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Horário em que a Caixa Ficou Pronta</label>
+          <input type="time" name="hora_pronta" class="form-control">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Anotações / Lembretes</label>
+          <input type="text" name="anotacoes" class="form-control" placeholder="ex: Pedido urgente">
+        </div>
+
+        <div class="col-md-12">
+          <label class="form-label small fw-semibold">Observações Gerais / Alterações</label>
+          <textarea name="observacoes" class="form-control" rows="2" placeholder="Observações pertinentes à nota fiscal ou ao empacotamento..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-5">
+      <a href="/expedicoes" class="btn btn-outline-secondary px-4">Cancelar</a>
+      <button type="submit" class="btn btn-janlux px-5">
+        <i class="bi bi-check-circle me-1"></i> Salvar e Registrar Expedição
+      </button>
+    </div>
+  </form>
+</main>
+
+<script>
+  function buscarPorCodigo(cod) {
+    const limpo = cod.trim().toUpperCase();
+    if (!limpo) return;
+
+    const select = document.getElementById('clienteSelect');
+    let encontrado = false;
+
+    for (let i = 0; i < select.options.length; i++) {
+      const opt = select.options[i];
+      const optCod = (opt.getAttribute('data-codigo') || '').trim().toUpperCase();
+      if (optCod === limpo) {
+        select.selectedIndex = i;
+        document.getElementById('cnpjDestinatarioInput').value = opt.getAttribute('data-cnpj') || '';
+        encontrado = true;
+        break;
+      }
+    }
+
+    if (!encontrado) {
+      // Se não encontrou código exato, busca se o código começa com o digitado
+      for (let i = 0; i < select.options.length; i++) {
+        const opt = select.options[i];
+        const optCod = (opt.getAttribute('data-codigo') || '').trim().toUpperCase();
+        if (optCod && optCod.includes(limpo)) {
+          select.selectedIndex = i;
+          document.getElementById('cnpjDestinatarioInput').value = opt.getAttribute('data-cnpj') || '';
+          break;
+        }
+      }
+    }
+  }
+
+  function selecionarClienteDropdown(select) {
+    const opt = select.options[select.selectedIndex];
+    if (opt && opt.value) {
+      document.getElementById('clienteCodigoInput').value = opt.getAttribute('data-codigo') || '';
+      document.getElementById('cnpjDestinatarioInput').value = opt.getAttribute('data-cnpj') || '';
+    } else {
+      document.getElementById('clienteCodigoInput').value = '';
+      document.getElementById('cnpjDestinatarioInput').value = '';
+    }
+  }
+
+  function alternarNovoCliente(check) {
+    const inputNomeNovo = document.getElementById('clienteNomeNovo');
+    const selectCliente = document.getElementById('clienteSelect');
+    if (check.checked) {
+      inputNomeNovo.style.display = 'block';
+      selectCliente.value = '';
+      inputNomeNovo.focus();
+    } else {
+      inputNomeNovo.style.display = 'none';
+      inputNomeNovo.value = '';
+    }
+  }
+
+  function preencherDescricao(input) {
+    const val = input.value.trim().toUpperCase();
+    const datalist = document.getElementById('listaProdutos');
+    const opt = Array.from(datalist.options).find(o => o.value.toUpperCase() === val);
+    if (opt) {
+      const row = input.closest('tr');
+      row.querySelector('input[name="prod_descricao"]').value = opt.getAttribute('data-desc') || opt.innerText;
+    }
+  }
+
+  function preencherDimensoes(select) {
+    const opt = select.options[select.selectedIndex];
+    if (opt) {
+      const row = select.closest('tr');
+      row.querySelector('input[name="vol_comprimento"]').value = opt.getAttribute('data-comp') || 0;
+      row.querySelector('input[name="vol_largura"]').value = opt.getAttribute('data-larg') || 0;
+      row.querySelector('input[name="vol_altura"]').value = opt.getAttribute('data-alt') || 0;
+      row.querySelector('input[name="vol_peso"]').value = opt.getAttribute('data-peso') || 0;
+    }
+  }
+
+  function adicionarProduto() {
+    const tbody = document.getElementById('produtosBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" name="prod_codigo" class="form-control form-control-sm" placeholder="ex: V012RT" list="listaProdutos" oninput="preencherDescricao(this)" required></td>
+      <td><input type="text" name="prod_descricao" class="form-control form-control-sm" placeholder="Descrição do item..."></td>
+      <td><input type="number" name="prod_quantidade" class="form-control form-control-sm" value="1" min="1" required></td>
+      <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerLinha(this)" title="Remover"><i class="bi bi-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function adicionarVolume() {
+    const tbody = document.getElementById('volumesBody');
+    const rowCount = tbody.children.length + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="fw-bold text-center vol-num">${rowCount}</td>
+      <td>
+        <select name="vol_embalagem_id" class="form-select form-select-sm" onchange="preencherDimensoes(this)">
+          <% embalagens.forEach(emb => { %>
+            <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= emb.peso_g %>">
+              <%= emb.descricao %> (<%= emb.codigo %>)
+            </option>
+          <% }) %>
+        </select>
+      </td>
+      <td><input type="number" step="0.1" name="vol_comprimento" class="form-control form-control-sm" placeholder="cm" value="50"></td>
+      <td><input type="number" step="0.1" name="vol_largura" class="form-control form-control-sm" placeholder="cm" value="30"></td>
+      <td><input type="number" step="0.1" name="vol_altura" class="form-control form-control-sm" placeholder="cm" value="20"></td>
+      <td><input type="number" step="1" name="vol_peso" class="form-control form-control-sm" placeholder="gramas" value="1500"></td>
+      <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerVolume(this)" title="Remover"><i class="bi bi-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function removerLinha(btn) {
+    const tbody = document.getElementById('produtosBody');
+    if (tbody.children.length > 1) {
+      btn.closest('tr').remove();
+    }
+  }
+
+  function selecionarEmitente(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.cnpj) {
+      document.getElementById('cnpjEmitenteInput').value = opt.dataset.cnpj;
+    }
+  }
+
+  function removerVolume(btn) {
+    const tbody = document.getElementById('volumesBody');
+    if (tbody.children.length > 1) {
+      btn.closest('tr').remove();
+      Array.from(tbody.children).forEach((tr, idx) => {
+        tr.querySelector('.vol-num').innerText = idx + 1;
+      });
+    }
+  }
+</script>
+
+<%- include('../partials/footer') %>
