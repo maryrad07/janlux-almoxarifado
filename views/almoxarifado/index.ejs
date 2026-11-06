@@ -1,0 +1,297 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Almoxarifado e Controle de Embalagens</h4>
+      <p class="text-muted small mb-0">Gestão de caixas, envoltórios, movimentações de entrada/saída e saldos em tempo real</p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+      <button type="button" class="btn btn-janlux btn-sm" data-bs-toggle="modal" data-bs-target="#modalMovimentar">
+        <i class="bi bi-arrow-left-right me-1"></i> Nova Movimentação
+      </button>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaEmbalagem">
+        <i class="bi bi-plus-circle me-1"></i> Cadastrar Embalagem
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Grid de Embalagens e Saldos Atuais -->
+  <div class="card card-janlux mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-boxes me-2"></i> Estoque Atual de Embalagens (<%= embalagens.length %> modelos cadastrados)</h6>
+      <span class="small text-muted">Saldos calculados dinamicamente &bull; Alertas automáticos</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descrição / Tipo</th>
+            <th>Dimensões (CxLxA)</th>
+            <th>Peso Padrão</th>
+            <th class="text-center">Estoque Mínimo</th>
+            <th class="text-center">Saldo Atual</th>
+            <th>Status</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (embalagens.length === 0) { %>
+            <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma embalagem cadastrada.</td></tr>
+          <% } else { %>
+            <% embalagens.forEach(emb => { %>
+              <tr class="<%= emb.abaixoMinimo ? 'table-warning' : '' %>">
+                <td class="fw-bold text-navy"><%= emb.codigo %></td>
+                <td>
+                  <strong><%= emb.descricao %></strong>
+                  <% if (emb.observacoes) { %><br><small class="text-muted"><%= emb.observacoes %></small><% } %>
+                </td>
+                <td><%= emb.comprimento_cm %> &times; <%= emb.largura_cm %> &times; <%= emb.altura_cm %> cm</td>
+                <td><%= emb.peso_g %> g</td>
+                <td class="text-center"><span class="badge bg-light text-dark border"><%= emb.estoque_minimo %> <%= emb.unidade %></span></td>
+                <td class="text-center">
+                  <span class="fw-bold fs-6 <%= emb.saldo <= 0 ? 'text-danger' : (emb.abaixoMinimo ? 'text-warning' : 'text-success') %>">
+                    <%= emb.saldo %> <%= emb.unidade %>
+                  </span>
+                </td>
+                <td>
+                  <% if (emb.saldo <= 0) { %>
+                    <span class="badge bg-danger">SEM ESTOQUE</span>
+                  <% } else if (emb.abaixoMinimo) { %>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> ESTOQUE BAIXO</span>
+                  <% } else { %>
+                    <span class="badge bg-success">NORMAL</span>
+                  <% } %>
+                </td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="abrirMovimentacao(<%= emb.id %>)" title="Movimentar estoque desta embalagem">
+                    <i class="bi bi-arrow-left-right"></i>
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Histórico das Últimas Movimentações (Seção 4.2) -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-clock-history me-2"></i> Últimas Movimentações Registradas</h6>
+      <a href="/relatorios/executar?tipo=8" class="small text-decoration-none">Ver relatório completo &rarr;</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Embalagem</th>
+            <th>Tipo</th>
+            <th class="text-end">Qtd</th>
+            <th>Motivo</th>
+            <th>NF Relacionada</th>
+            <th>Usuário Responsável</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (ultimasMovs.length === 0) { %>
+            <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma movimentação registrada recentemente.</td></tr>
+          <% } else { %>
+            <% ultimasMovs.forEach(m => { %>
+              <tr>
+                <td><%= m.criado_em %></td>
+                <td class="fw-semibold text-navy"><%= m.embalagem_codigo %> &mdash; <%= m.embalagem_descricao %></td>
+                <td>
+                  <% if (m.tipo === 'entrada') { %>
+                    <span class="badge bg-success"><i class="bi bi-arrow-down-left"></i> Entrada</span>
+                  <% } else if (m.tipo === 'saida') { %>
+                    <span class="badge bg-danger"><i class="bi bi-arrow-up-right"></i> Saída</span>
+                  <% } else if (m.tipo === 'uso_expedicao') { %>
+                    <span class="badge bg-primary"><i class="bi bi-box-seam"></i> Uso Expedição</span>
+                  <% } else if (m.tipo === 'ajuste') { %>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-sliders"></i> Ajuste</span>
+                  <% } else { %>
+                    <span class="badge bg-info text-dark"><i class="bi bi-arrow-counterclockwise"></i> Devolução</span>
+                  <% } %>
+                </td>
+                <td class="text-end fw-bold">
+                  <%= ['saida', 'uso_expedicao', 'ajuste'].includes(m.tipo) ? '-' : '+' %><%= m.quantidade %> un
+                </td>
+                <td><%= m.motivo || '-' %></td>
+                <td><%= m.nota_fiscal ? 'NF ' + m.nota_fiscal : '-' %></td>
+                <td><%= m.usuario_nome || 'Sistema' %></td>
+                <td><small class="text-muted"><%= m.observacoes || '-' %></small></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal: Registrar Movimentação -->
+<div class="modal fade" id="modalMovimentar" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/almoxarifado/movimentar" method="POST">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy">
+            <i class="bi bi-arrow-left-right me-2 text-primary"></i> Registrar Movimentação de Embalagens
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Embalagem <span class="text-danger">*</span></label>
+            <select name="embalagem_id" id="movEmbalagemSelect" class="form-select" required>
+              <option value="">Selecione a embalagem...</option>
+              <% embalagens.forEach(e => { %>
+                <option value="<%= e.id %>"><%= e.codigo %> &mdash; <%= e.descricao %> (Saldo: <%= e.saldo %> un)</option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Tipo de Movimentação <span class="text-danger">*</span></label>
+              <select name="tipo" class="form-select" required>
+                <option value="entrada">Entrada (Compra / Recebimento)</option>
+                <option value="saida">Saída (Descarte / Avaria)</option>
+                <option value="uso_expedicao">Utilização em Expedição</option>
+                <option value="ajuste">Ajuste de Inventário</option>
+                <option value="devolucao">Devolução ao Estoque</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Quantidade <span class="text-danger">*</span></label>
+              <input type="number" name="quantidade" class="form-control" min="1" value="1" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Motivo / Justificativa <span class="text-danger">*</span></label>
+            <input type="text" name="motivo" class="form-control" placeholder="ex: Compra NF 1234, ajuste contagem física..." required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Número da NF ou Pedido (se aplicável)</label>
+            <input type="text" name="nota_fiscal" class="form-control" placeholder="ex: 10098">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações</label>
+            <textarea name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Observações complementares..."></textarea>
+          </div>
+
+          <!-- Permissão especial para saldo negativo (Seção 4.2) -->
+          <div class="form-check p-2 bg-light rounded border">
+            <input class="form-check-input ms-1" type="checkbox" name="autorizacao_saldo_negativo" id="checkNegativo" value="1">
+            <label class="form-check-label ms-2 small text-muted" for="checkNegativo">
+              <strong>Autorização de saldo negativo extraordinário:</strong> Marque apenas se devidamente justificado pela gerência.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Confirmar e Gravar Saldo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cadastrar Nova Embalagem -->
+<div class="modal fade" id="modalNovaEmbalagem" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form action="/almoxarifado/embalagens/salvar" method="POST">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy">
+            <i class="bi bi-box-seam me-2 text-warning"></i> Cadastrar Novo Tipo de Embalagem
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Código da Embalagem <span class="text-danger">*</span></label>
+              <input type="text" name="codigo" class="form-control" placeholder="ex: EMB-CX-05" required>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold">Descrição / Tipo <span class="text-danger">*</span></label>
+              <input type="text" name="descricao" class="form-control" placeholder="ex: Caixa Papelão Grande Reforçada" required>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Comprimento (cm)</label>
+              <input type="number" step="0.1" name="comprimento_cm" class="form-control" placeholder="cm" value="50">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Largura (cm)</label>
+              <input type="number" step="0.1" name="largura_cm" class="form-control" placeholder="cm" value="30">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Altura (cm)</label>
+              <input type="number" step="0.1" name="altura_cm" class="form-control" placeholder="cm" value="20">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Peso Médio (g)</label>
+              <input type="number" step="1" name="peso_g" class="form-control" placeholder="gramas" value="400">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Unidade de Medida</label>
+              <input type="text" name="unidade" class="form-control" value="UN">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Estoque Mínimo (Alerta)</label>
+              <input type="number" name="estoque_minimo" class="form-control" value="20">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Estoque Inicial de Implantação</label>
+              <input type="number" name="estoque_inicial" class="form-control" value="0">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Observações</label>
+              <textarea name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Informações de fornecedor, tolerância de peso, etc..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Cadastrar Embalagem</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirMovimentacao(id) {
+    document.getElementById('movEmbalagemSelect').value = id;
+    new bootstrap.Modal(document.getElementById('modalMovimentar')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
