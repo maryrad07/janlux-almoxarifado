@@ -1,0 +1,273 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="mb-4 pb-2 border-bottom">
+    <h4 class="fw-bold mb-1 text-navy">Relatórios e Consultas Gerenciais</h4>
+    <p class="text-muted small mb-0">Emissão dos 12 relatórios operacionais obrigatórios com exportação nativa para Excel e visualização instantânea</p>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Relatório 1 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-primary-subtle text-primary me-3">
+            <i class="bi bi-calendar-range"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">1. Expedições por Período</h6>
+            <small class="text-muted">Relação completa de NFs despachadas</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="1">
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="date" name="data_inicio" class="form-control form-control-sm" placeholder="De"></div>
+            <div class="col-6"><input type="date" name="data_fim" class="form-control form-control-sm" placeholder="Até"></div>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Relatório</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 2 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-info-subtle text-info me-3">
+            <i class="bi bi-people"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">2. NFs por Cliente</h6>
+            <small class="text-muted">Total de pedidos e volumes por cliente</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="2">
+          <div class="mb-2">
+            <select name="cliente_id" class="form-select form-select-sm">
+              <option value="">Todos os Clientes</option>
+              <% clientes.forEach(c => { %>
+                <option value="<%= c.id %>"><%= c.razao_social %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-outline-info btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Relatório</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 3 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-success-subtle text-success me-3">
+            <i class="bi bi-truck"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">3. Coletas por Transportadora</h6>
+            <small class="text-muted">Volume de coletas e NFs por parceiro</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="3">
+          <div class="mb-2">
+            <select name="transportadora_id" class="form-select form-select-sm">
+              <option value="">Todas as Transportadoras</option>
+              <% transportadoras.forEach(t => { %>
+                <option value="<%= t.id %>"><%= t.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-outline-success btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Relatório</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 4 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-warning-subtle text-warning me-3">
+            <i class="bi bi-boxes"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">4. Volumes Retirados por Data</h6>
+            <small class="text-muted">Total de volumes físicos retirados por dia/mês</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="4">
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="date" name="data_inicio" class="form-control form-control-sm"></div>
+            <div class="col-6"><input type="date" name="data_fim" class="form-control form-control-sm"></div>
+          </div>
+          <button type="submit" class="btn btn-outline-warning text-dark btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Relatório</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 5 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-secondary-subtle text-secondary me-3">
+            <i class="bi bi-search"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">5. Histórico de Coleta por NF</h6>
+            <small class="text-muted">Rastreie quem retirou e quando cada NF saiu</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="5">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-secondary btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Histórico</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 6 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-danger-subtle text-danger me-3">
+            <i class="bi bi-file-earmark-excel"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">6. Comprovantes Pendentes</h6>
+            <small class="text-muted">Coletas que ainda aguardam retorno de assinatura</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="6">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Pendências</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 7 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-success-subtle text-success me-3">
+            <i class="bi bi-archive"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">7. Comprovantes Arquivados</h6>
+            <small class="text-muted">Documentos assinados arquivados com sucesso</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="7">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-success btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Arquivados</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 8 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-primary-subtle text-primary me-3">
+            <i class="bi bi-arrow-left-right"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">8. Movimentações de Embalagens</h6>
+            <small class="text-muted">Auditoria de entradas, saídas e ajustes</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="8">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Movimentações</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 9 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-info-subtle text-info me-3">
+            <i class="bi bi-box"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">9. Saldo Atual de Embalagens</h6>
+            <small class="text-muted">Posição física e alertas de estoque baixo</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="9">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-info btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Saldos</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 10 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-warning-subtle text-warning me-3">
+            <i class="bi bi-pie-chart"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">10. Consumo de Embalagens</h6>
+            <small class="text-muted">Consumo por modelo de caixa em expedições</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="10">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-warning text-dark btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Consumo</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 11 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-danger-subtle text-danger me-3">
+            <i class="bi bi-exclamation-octagon"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">11. Ocorrências e Divergências</h6>
+            <small class="text-muted">Divergências na conferência e resoluções</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="11">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Ocorrências</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Relatório 12 -->
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-janlux p-3 h-100">
+        <div class="d-flex align-items-center mb-2">
+          <div class="stat-icon bg-purple-subtle text-purple me-3" style="color: #6f42c1; background-color: #f3e8ff;">
+            <i class="bi bi-stopwatch"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0 text-navy">12. Tempo de Operação (Lead Time)</h6>
+            <small class="text-muted">Horário da NF descida vs Caixa Pronta</small>
+          </div>
+        </div>
+        <form action="/relatorios/executar" method="GET" class="mt-2">
+          <input type="hidden" name="tipo" value="12">
+          <div class="mb-2" style="height: 31px;"></div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-eye"></i> Visualizar Tempos</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
