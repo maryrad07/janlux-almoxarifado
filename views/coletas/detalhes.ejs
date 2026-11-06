@@ -1,0 +1,328 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid" style="max-width: 1200px;">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold mb-0 text-navy">Coleta &bull; <%= coleta.numero %></h4>
+        <% if (comprovante && (comprovante.status === 'assinado' || comprovante.status === 'arquivado')) { %>
+          <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> <%= comprovante.status.toUpperCase() %></span>
+        <% } else if (comprovante && comprovante.status === 'emitido') { %>
+          <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i> AGUARDANDO ASSINATURA</span>
+        <% } else { %>
+          <span class="badge bg-secondary">PENDENTE</span>
+        <% } %>
+      </div>
+      <p class="text-muted small mb-0">Retirada efetiva em <%= formatDateBR(coleta.data_retirada) %> às <%= coleta.hora_retirada %> &bull; Liberada por: <%= coleta.funcionario_liberacao || 'Sandra / Ivan' %></p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+      <a href="/coletas/<%= coleta.id %>/pdf" class="btn btn-danger btn-sm" target="_blank">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Imprimir / Baixar Comprovante PDF (com Logo)
+      </a>
+      <form action="/coletas/<%= coleta.id %>/regenerar-pdf" method="POST" class="d-inline">
+        <button type="submit" class="btn btn-outline-danger btn-sm" title="Regenera o arquivo PDF com a logo e dados atualizados">
+          <i class="bi bi-arrow-repeat me-1"></i> Atualizar PDF
+        </button>
+      </form>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalStatusComprovante">
+        <i class="bi bi-check2-circle me-1"></i> Atualizar Situação do Comprovante
+      </button>
+      <% if (session && session.user && session.user.perfil === 'administrador') { %>
+      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluirColeta">
+        <i class="bi bi-trash3 me-1"></i> Excluir
+      </button>
+      <% } %>
+      <a href="/coletas" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Informações da Coleta e do Transportador -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card card-janlux p-4 h-100">
+        <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+          <i class="bi bi-truck me-1"></i> Identificação da Coleta e Transportador
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Identificador Coleta:</span>
+            <span class="fw-bold fs-5 text-primary"><%= coleta.numero %></span>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Data Efetiva da Retirada:</span>
+            <span class="fw-semibold"><%= formatDateBR(coleta.data_retirada) %></span>
+          </div>
+          <div class="col-md-4">
+            <span class="text-muted small d-block">Horário Efetivo:</span>
+            <span class="fw-semibold"><%= coleta.hora_retirada %></span>
+          </div>
+
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Transportadora:</span>
+            <span class="fw-bold text-navy"><%= coleta.transportadora_nome || coleta.transportadora_cadastrada || 'NÃO INFORMADA' %></span>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Placa do Veículo:</span>
+            <span class="badge bg-light text-dark border font-monospace fs-6"><%= coleta.placa_veiculo || 'NÃO INFORMADA' %></span>
+          </div>
+
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Motorista / Responsável:</span>
+            <span class="fw-semibold"><%= coleta.motorista_nome || 'NÃO INFORMADO' %></span>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Documento (RG / CPF):</span>
+            <span><%= coleta.motorista_documento || 'NÃO INFORMADO' %></span>
+          </div>
+
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Funcionário da Liberação (JANLUX):</span>
+            <span class="fw-semibold text-dark"><%= coleta.funcionario_liberacao %></span>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted small d-block">Data de Registro no Sistema:</span>
+            <span><%= coleta.criado_em %></span>
+          </div>
+
+          <% if (coleta.observacoes) { %>
+            <div class="col-12">
+              <span class="text-muted small d-block">Observações:</span>
+              <div class="p-2 bg-light rounded small border"><%= coleta.observacoes %></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card de Controle do Comprovante e Assinatura (Seção 10) -->
+    <div class="col-md-4">
+      <div class="card card-janlux p-4 h-100" style="border-top: 3px solid var(--janlux-accent);">
+        <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+          <i class="bi bi-file-earmark-check me-1"></i> Controle do Comprovante
+        </h6>
+        <% if (comprovante) { %>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Nº do Comprovante:</span>
+            <span class="fw-bold text-dark"><%= comprovante.numero %></span>
+          </div>
+          <div class="mb-3">
+            <span class="text-muted small d-block">Situação do Documento:</span>
+            <% if (comprovante.status === 'arquivado') { %>
+              <span class="badge bg-success fs-6"><i class="bi bi-archive-fill me-1"></i> Assinado e Arquivado</span>
+            <% } else if (comprovante.status === 'assinado') { %>
+              <span class="badge bg-info text-dark fs-6"><i class="bi bi-pen-fill me-1"></i> Assinado</span>
+            <% } else if (comprovante.status === 'emitido') { %>
+              <span class="badge bg-warning text-dark fs-6"><i class="bi bi-clock me-1"></i> Aguardando Assinatura</span>
+            <% } else { %>
+              <span class="badge bg-secondary fs-6"><%= comprovante.status.toUpperCase() %></span>
+            <% } %>
+          </div>
+
+          <% if (comprovante.responsavel_arquivo) { %>
+            <div class="mb-2 small">
+              <strong>Confirmado por:</strong> <%= comprovante.responsavel_arquivo %><br>
+              <strong>Data:</strong> <%= formatDateBR(comprovante.data_assinatura) %>
+            </div>
+          <% } %>
+
+          <% if (comprovante.arquivo_assinado) { %>
+            <div class="mb-3">
+              <span class="text-muted small d-block">Documento Digitalizado Anexo:</span>
+              <a href="<%= comprovante.arquivo_assinado %>" target="_blank" class="btn btn-sm btn-outline-success mt-1">
+                <i class="bi bi-file-earmark-image me-1"></i> Ver Documento Assinado
+              </a>
+            </div>
+          <% } %>
+
+          <div class="d-grid gap-2 mt-4">
+            <a href="/coletas/<%= coleta.id %>/pdf" class="btn btn-outline-danger btn-sm" target="_blank">
+              <i class="bi bi-printer me-1"></i> Reimpressão do PDF A4
+            </a>
+            <button class="btn btn-janlux btn-sm" data-bs-toggle="modal" data-bs-target="#modalStatusComprovante">
+              <i class="bi bi-pencil-square me-1"></i> Confirmar Arquivamento / Anexar
+            </button>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relação de Notas Fiscais e Volumes da Coleta (Seção 8.2 e 9.3) -->
+  <div class="card card-janlux mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0 text-navy">
+        <i class="bi bi-receipt me-1"></i> Notas Fiscais e Volumes Entregues nesta Coleta
+      </h6>
+      <span class="badge bg-primary fs-6 px-3">
+        Total da Coleta: <%= totalVolumes %> volume(s) em <%= itens.length %> NF(s)
+      </span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th style="width: 5%;">Item</th>
+            <th style="width: 20%;">Nota Fiscal</th>
+            <th style="width: 45%;">Cliente / Destinatário</th>
+            <th style="width: 15%;" class="text-center">Data Emissão</th>
+            <th style="width: 15%;" class="text-end">Volumes Físicos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% itens.forEach((it, idx) => { %>
+            <tr>
+              <td><%= idx + 1 %></td>
+              <td>
+                <a href="/expedicoes/<%= it.expedicao_id %>" class="fw-bold text-navy" title="Abrir detalhes da NF">
+                  NF <%= it.numero_nf %>
+                </a>
+              </td>
+              <td><strong><%= it.cliente_nome %></strong></td>
+              <td class="text-center"><%= formatDateBR(it.data_emissao) %></td>
+              <td class="text-end fw-bold text-dark fs-6"><%= it.quantidade_volumes %> volume(s)</td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <td colspan="4" class="fw-bold text-end">TOTAL GERAL DE VOLUMES FÍSICOS RETIRADOS:</td>
+            <td class="text-end fw-bold fs-6 text-primary"><%= totalVolumes %> volume(s)</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Histórico da Coleta -->
+  <div class="card card-janlux p-4 mb-5">
+    <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">
+      <i class="bi bi-clock-history me-1"></i> Rastreabilidade da Coleta
+    </h6>
+    <% if (historico.length === 0) { %>
+      <p class="text-muted small mb-0">Nenhuma alteração registrada.</p>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Usuário</th>
+              <th>Ação</th>
+              <th>Campo</th>
+              <th>Valor Anterior</th>
+              <th>Novo Valor</th>
+              <th>Motivo / Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% historico.forEach(h => { %>
+              <tr>
+                <td><%= h.criado_em %></td>
+                <td><strong><%= h.usuario_nome || 'Sistema' %></strong></td>
+                <td><span class="badge bg-secondary"><%= h.acao %></span></td>
+                <td><%= h.campo || '-' %></td>
+                <td class="text-muted"><%= h.valor_anterior || '-' %></td>
+                <td class="fw-bold"><%= h.valor_novo || '-' %></td>
+                <td><%= h.motivo || '-' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<!-- Modal: Atualizar Situação do Comprovante (Seção 10) -->
+<div class="modal fade" id="modalStatusComprovante" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/coletas/<%= coleta.id %>/comprovante/status" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy">Controle de Assinatura e Arquivamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Situação do Comprovante <span class="text-danger">*</span></label>
+            <select name="status" class="form-select" required>
+              <option value="emitido" <%= comprovante && comprovante.status === 'emitido' ? 'selected' : '' %>>Emitido — Aguardando Assinatura</option>
+              <option value="assinado" <%= comprovante && comprovante.status === 'assinado' ? 'selected' : '' %>>Assinado pelo Motorista</option>
+              <option value="arquivado" <%= comprovante && comprovante.status === 'arquivado' ? 'selected' : '' %>>Assinado e Arquivado no Almoxarifado</option>
+              <option value="cancelado" <%= comprovante && comprovante.status === 'cancelado' ? 'selected' : '' %>>Cancelado / Substituído</option>
+            </select>
+          </div>
+
+          <div class="form-check p-2 bg-light rounded border mb-3">
+            <input class="form-check-input ms-1" type="checkbox" name="confirmacao_fisica" id="checkFisica" value="1">
+            <label class="form-check-label ms-2 small" for="checkFisica">
+              <strong>Confirmação de Arquivo Físico:</strong> Confirmo que o documento físico original em papel A4 foi devidamente assinado e guardado na pasta de arquivos da JANLUX.
+            </label>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Anexar Cópia Digitalizada / Foto (Opcional)</label>
+            <input type="file" name="arquivo_assinado" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg">
+            <small class="text-muted" style="font-size: 0.75rem;">Formatos aceitos: PDF ou Imagem da folha assinada</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações do Arquivamento</label>
+            <textarea name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Local de arquivo físico (pasta/gaveta), ocorrências de assinatura..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Situação</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<!-- Modal: Confirmar Exclusão da Coleta -->
+<div class="modal fade" id="modalExcluirColeta" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash3-fill me-2"></i>Confirmar Exclusão da Coleta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/coletas/<%= coleta.id %>/excluir" method="POST">
+        <div class="modal-body">
+          <div class="alert alert-warning mb-3">
+            <strong>Atenção!</strong> Ao excluir a coleta <strong><%= coleta.numero %></strong>, as expedições associadas
+            serão revertidas automaticamente para o status <em>"Pronta para coleta"</em>.
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Motivo da exclusão <span class="text-muted">(opcional)</span></label>
+            <textarea name="motivo_exclusao" class="form-control form-control-sm" rows="2"
+              placeholder="ex: Erro no lançamento, coleta cancelada pela transportadora..."></textarea>
+          </div>
+          <p class="small text-muted mb-0">
+            <i class="bi bi-shield-lock me-1"></i>Somente administradores podem excluir registros.
+            A ação será registrada no histórico do sistema.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">
+            <i class="bi bi-trash3 me-1"></i>Excluir Definitivamente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
