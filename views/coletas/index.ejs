@@ -1,0 +1,145 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Coletas e Retirada de Mercadorias</h4>
+      <p class="text-muted small mb-0">Registro de coletas por transportadoras, emissão automática de comprovantes A4 e controle de assinaturas</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <a href="/coletas/nova" class="btn btn-janlux">
+        <i class="bi bi-truck me-1"></i> Registrar Nova Coleta
+      </a>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Barra de Filtros -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/coletas" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Pesquisa</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Nº Coleta, Motorista, Placa, NF..." value="<%= filtros.busca || '' %>">
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Transportadora</label>
+        <select name="transportadora_id" class="form-select form-select-sm">
+          <option value="">Todas as transportadoras</option>
+          <% transportadoras.forEach(t => { %>
+            <option value="<%= t.id %>" <%= filtros.transportadora_id == t.id ? 'selected' : '' %>><%= t.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Status do Comprovante</label>
+        <select name="status_comprovante" class="form-select form-select-sm">
+          <option value="">Todos os status</option>
+          <option value="emitido" <%= filtros.status_comprovante === 'emitido' ? 'selected' : '' %>>Emitido (Aguardando Assinatura)</option>
+          <option value="assinado" <%= filtros.status_comprovante === 'assinado' ? 'selected' : '' %>>Assinado</option>
+          <option value="arquivado" <%= filtros.status_comprovante === 'arquivado' ? 'selected' : '' %>>Arquivado</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Data Retirada</label>
+        <input type="date" name="data_inicio" class="form-control form-control-sm" value="<%= filtros.data_inicio || '' %>">
+      </div>
+
+      <div class="col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/coletas" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Coletas -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= coletas.length %> coletas registradas</span>
+      <span class="small text-muted"><i class="bi bi-file-earmark-pdf text-danger"></i> PDF gerado automaticamente em cada coleta</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th>Nº Coleta</th>
+            <th>Data / Hora Efetiva</th>
+            <th>Transportadora</th>
+            <th>Motorista / Placa</th>
+            <th class="text-center">Qtd NFs</th>
+            <th class="text-center">Total Volumes</th>
+            <th>Status Comprovante</th>
+            <th>Liberado Por</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (coletas.length === 0) { %>
+            <tr><td colspan="9" class="text-center text-muted py-5">Nenhuma coleta registrada até o momento.</td></tr>
+          <% } else { %>
+            <% coletas.forEach(col => { %>
+              <tr>
+                <td class="fw-bold text-navy"><%= col.numero %></td>
+                <td>
+                  <strong><%= formatDateBR(col.data_retirada) %></strong><br>
+                  <small class="text-muted"><%= col.hora_retirada %></small>
+                </td>
+                <td>
+                  <div class="fw-semibold text-truncate" style="max-width: 170px;" title="<%= col.transportadora_nome %>">
+                    <%= col.transportadora_nome || 'N/A' %>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-truncate" style="max-width: 160px;" title="<%= col.motorista_nome %>">
+                    <%= col.motorista_nome || 'N/A' %>
+                  </div>
+                  <% if (col.placa_veiculo) { %>
+                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.7rem;"><%= col.placa_veiculo %></span>
+                  <% } %>
+                </td>
+                <td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle"><%= col.total_nfs %> NF(s)</span></td>
+                <td class="text-center"><span class="badge bg-warning-subtle text-dark border border-warning-subtle fw-bold"><%= col.total_volumes %> volume(s)</span></td>
+                <td>
+                  <% if (col.comprovante_status === 'assinado' || col.comprovante_status === 'arquivado') { %>
+                    <span class="badge bg-success small"><i class="bi bi-check-circle-fill me-1"></i> <%= col.comprovante_status.toUpperCase() %></span>
+                  <% } else if (col.comprovante_status === 'emitido') { %>
+                    <span class="badge bg-warning text-dark small"><i class="bi bi-clock me-1"></i> AGUARD. ASSINATURA</span>
+                  <% } else { %>
+                    <span class="badge bg-secondary small">PENDENTE</span>
+                  <% } %>
+                </td>
+                <td><small class="text-muted"><%= col.funcionario_liberacao || '-' %></small></td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <% if (col.arquivo_pdf) { %>
+                      <a href="/coletas/<%= col.id %>/pdf" class="btn btn-outline-danger" title="Baixar / Imprimir PDF do Comprovante" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                      </a>
+                    <% } %>
+                    <a href="/coletas/<%= col.id %>" class="btn btn-outline-primary" title="Ver Detalhes">
+                      <i class="bi bi-eye"></i> Detalhes
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
