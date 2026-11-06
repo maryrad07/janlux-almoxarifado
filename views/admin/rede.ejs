@@ -1,0 +1,185 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container" style="max-width: 860px;">
+  <div class="d-flex align-items-center mb-4 gap-3">
+    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:52px;height:52px;flex-shrink:0;">
+      <i class="bi bi-wifi fs-4"></i>
+    </div>
+    <div>
+      <h4 class="fw-bold mb-0 text-navy">Acesso pelo Rede Local</h4>
+      <p class="text-muted small mb-0">Como outras máquinas acessam o sistema JANLUX nesta rede</p>
+    </div>
+  </div>
+
+  <% if (typeof urlProducao !== 'undefined' && urlProducao) { %>
+  <!-- Acesso em Nuvem (Vercel) -->
+  <div class="card card-janlux mb-4 border-primary">
+    <div class="card-header bg-primary text-white py-3">
+      <h6 class="fw-bold mb-0"><i class="bi bi-cloud-check me-2"></i>Acesso em Nuvem Ativo (Vercel)</h6>
+    </div>
+    <div class="card-body">
+      <p class="mb-2">O sistema está disponível publicamente na internet. Qualquer computador, celular ou tablet pode acessar diretamente:</p>
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+        <a href="<%= urlProducao %>" target="_blank" class="fw-bold fs-5 text-primary font-monospace text-decoration-none"><%= urlProducao %></a>
+        <button class="btn btn-sm btn-outline-primary" onclick="copiar('<%= urlProducao %>')">
+          <i class="bi bi-clipboard me-1"></i>Copiar URL
+        </button>
+      </div>
+      <div class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Conexão HTTPS Segura • Disponível 24/7</div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Alerta de pré-requisito -->
+  <div class="alert alert-warning d-flex gap-2 align-items-start mb-4">
+    <i class="bi bi-exclamation-triangle-fill fs-5 mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>Antes de tudo:</strong> Execute o arquivo
+      <code>CONFIGURAR_REDE_admin.bat</code> <strong>uma única vez</strong> como Administrador
+      neste computador para liberar a porta no Firewall do Windows.
+      <br><small class="text-muted">Localização: pasta do sistema JANLUX → clique com botão direito → "Executar como administrador"</small>
+    </div>
+  </div>
+
+  <!-- IPs disponíveis -->
+  <div class="card card-janlux mb-4">
+    <div class="card-header bg-white py-3">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-router me-2"></i>Endereços de Acesso Detectados</h6>
+    </div>
+    <div class="card-body p-0">
+      <% if (ips.length === 0) { %>
+        <div class="p-4 text-muted text-center">
+          <i class="bi bi-wifi-off fs-3 d-block mb-2"></i>
+          Nenhum endereço de rede local detectado. Verifique se o computador está conectado à rede.
+        </div>
+      <% } else { %>
+        <% ips.forEach(ip => { %>
+        <div class="p-4 border-bottom">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div>
+              <div class="text-muted small mb-1"><i class="bi bi-hdd-network me-1"></i>Interface: <strong><%= ip.interface %></strong></div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="fw-bold fs-5 text-primary font-monospace">http://<%= ip.address %>:<%= porta %></span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="copiar('http://<%= ip.address %>:<%= porta %>')">
+                  <i class="bi bi-clipboard me-1"></i>Copiar
+                </button>
+              </div>
+            </div>
+            <div class="ms-auto">
+              <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="bi bi-check-circle me-1"></i>Ativo
+              </span>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Passo a Passo para as outras máquinas -->
+  <div class="card card-janlux mb-4">
+    <div class="card-header bg-white py-3">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-laptop me-2"></i>Como Acessar nas Outras Máquinas</h6>
+    </div>
+    <div class="card-body">
+      <ol class="mb-0" style="line-height: 2.2;">
+        <li>
+          Certifique-se de que o <strong>sistema JANLUX está iniciado neste computador</strong>
+          (duplo clique no atalho da Área de Trabalho ou no <code>iniciar_sistema.bat</code>).
+        </li>
+        <li>
+          Nas outras máquinas, abra qualquer navegador de internet
+          <strong>(Chrome, Edge, Firefox)</strong>.
+        </li>
+        <li>
+          Na barra de endereços, digite um dos endereços listados acima e pressione <kbd>Enter</kbd>.<br>
+          <% if (ips.length > 0) { %>
+          <span class="text-muted small">Exemplo: </span>
+          <code class="text-primary">http://<%= ips[0].address %>:<%= porta %></code>
+          <% } %>
+        </li>
+        <li>
+          Faça o login com o usuário e senha fornecidos pelo administrador.
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Requisitos -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card card-janlux h-100 p-4">
+        <h6 class="fw-bold text-success mb-3"><i class="bi bi-check-circle-fill me-2"></i>Requisitos para funcionar</h6>
+        <ul class="small mb-0" style="line-height: 2;">
+          <li>Todas as máquinas na <strong>mesma rede</strong> (mesmo Wi-Fi ou cabo)</li>
+          <li>Sistema JANLUX <strong>iniciado</strong> neste computador</li>
+          <li><code>CONFIGURAR_REDE_admin.bat</code> executado uma vez</li>
+          <li>Navegador atualizado (Chrome, Edge, Firefox)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card card-janlux h-100 p-4">
+        <h6 class="fw-bold text-danger mb-3"><i class="bi bi-x-circle-fill me-2"></i>Não é necessário</h6>
+        <ul class="small mb-0" style="line-height: 2;">
+          <li>Instalar nada nas outras máquinas</li>
+          <li>Internet ou acesso à nuvem</li>
+          <li>Licença de software extra</li>
+          <li>Configuração especial no roteador</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solução de problemas -->
+  <div class="card card-janlux mb-5">
+    <div class="card-header bg-white py-3">
+      <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-tools me-2"></i>Problemas de Conexão? Verifique:</h6>
+    </div>
+    <div class="card-body">
+      <table class="table table-sm small mb-0">
+        <tbody>
+          <tr>
+            <td class="text-danger fw-semibold" style="width:35%"><i class="bi bi-x me-1"></i>Site não abre nas outras máquinas</td>
+            <td>Execute o <code>CONFIGURAR_REDE_admin.bat</code> como administrador neste computador</td>
+          </tr>
+          <tr>
+            <td class="text-danger fw-semibold"><i class="bi bi-x me-1"></i>Sistema funcionava e parou</td>
+            <td>O sistema foi fechado neste computador. Abra novamente pelo atalho da Área de Trabalho</td>
+          </tr>
+          <tr>
+            <td class="text-danger fw-semibold"><i class="bi bi-x me-1"></i>IP mudou</td>
+            <td>Recarregue esta página para ver o novo IP. Configure IP fixo no roteador para evitar mudanças</td>
+          </tr>
+          <tr>
+            <td class="text-danger fw-semibold"><i class="bi bi-x me-1"></i>Lento ou travando</td>
+            <td>Normal em rede Wi-Fi com muitos usuários simultâneos. Use cabo de rede para melhor desempenho</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <a href="/dashboard" class="btn btn-outline-secondary mb-5">
+    <i class="bi bi-arrow-left me-1"></i> Voltar ao Painel
+  </a>
+</main>
+
+<script>
+function copiar(texto) {
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check me-1"></i>Copiado!';
+    btn.classList.replace('btn-outline-secondary', 'btn-success');
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.classList.replace('btn-success', 'btn-outline-secondary');
+    }, 2000);
+  });
+}
+</script>
+
+<%- include('../partials/footer') %>
