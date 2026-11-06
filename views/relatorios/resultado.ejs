@@ -1,0 +1,61 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold mb-0 text-navy"><%= title %></h4>
+        <span class="badge bg-primary"><%= dados.length %> registros</span>
+      </div>
+      <p class="text-muted small mb-0">Emitido em <%= new Date().toLocaleDateString('pt-BR') %> às <%= new Date().toLocaleTimeString('pt-BR') %> por <%= currentUser.nome %></p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+      <!-- Exportar Excel -->
+      <% 
+        const paramsExcel = new URLSearchParams(filtros);
+        paramsExcel.set('exportar', 'excel');
+      %>
+      <a href="/relatorios/executar?<%= paramsExcel.toString() %>" class="btn btn-success btn-sm">
+        <i class="bi bi-file-earmark-excel me-1"></i> Exportar para Excel (.xlsx)
+      </a>
+      <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
+        <i class="bi bi-printer me-1"></i> Imprimir
+      </button>
+      <a href="/relatorios" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Voltar aos Relatórios
+      </a>
+    </div>
+  </div>
+
+  <div class="card card-janlux">
+    <div class="table-responsive">
+      <table class="table table-sm table-janlux mb-0">
+        <thead>
+          <tr>
+            <% colunas.forEach(col => { %>
+              <th><%= col %></th>
+            <% }) %>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (dados.length === 0) { %>
+            <tr><td colspan="<%= colunas.length %>" class="text-center text-muted py-5">Nenhum dado encontrado para os parâmetros selecionados.</td></tr>
+          <% } else { %>
+            <% dados.forEach(linha => { %>
+              <tr>
+                <% linha.forEach((celula, idx) => { %>
+                  <td class="<%= idx === 0 ? 'fw-bold text-navy' : '' %>">
+                    <%= celula !== null && celula !== undefined ? celula : '-' %>
+                  </td>
+                <% }) %>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
