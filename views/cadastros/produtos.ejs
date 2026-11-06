@@ -1,0 +1,138 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1 text-navy">Cadastro de Produtos (Itens Comercializados)</h4>
+      <p class="text-muted small mb-0">Catálogo de lâmpadas, tubos, visores e equipamentos com códigos JANLUX</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <button type="button" class="btn btn-janlux" data-bs-toggle="modal" data-bs-target="#modalProduto" onclick="limparFormProduto()">
+        <i class="bi bi-plus-circle me-1"></i> Novo Produto
+      </button>
+    </div>
+  </div>
+
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show small" role="alert">
+      <i class="bi bi-check-circle me-1"></i> <%= msg %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (err) { %>
+    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i> <%= err %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Busca -->
+  <div class="card card-janlux p-3 mb-3">
+    <form action="/cadastros/produtos" method="GET" class="row g-2 align-items-end">
+      <div class="col-md-9">
+        <label class="form-label small fw-semibold">Pesquisar Produto</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Código (ex: V012RT) ou Descrição (ex: PULSAR, RUBY, 350MM)..." value="<%= busca %>">
+        </div>
+      </div>
+      <div class="col-md-3 d-flex gap-1">
+        <button type="submit" class="btn btn-janlux btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="/cadastros/produtos" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela de Produtos -->
+  <div class="card card-janlux">
+    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+      <span class="small fw-semibold text-muted">Exibindo <%= produtos.length %> produtos</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-janlux mb-0">
+        <thead>
+          <tr>
+            <th style="width: 20%;">Código</th>
+            <th style="width: 60%;">Descrição do Produto</th>
+            <th style="width: 10%;" class="text-center">Unidade</th>
+            <th style="width: 10%;" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (produtos.length === 0) { %>
+            <tr><td colspan="4" class="text-center text-muted py-5">Nenhum produto encontrado.</td></tr>
+          <% } else { %>
+            <% produtos.forEach(p => { %>
+              <tr>
+                <td class="fw-bold text-navy"><%= p.codigo %></td>
+                <td><%= p.descricao %></td>
+                <td class="text-center"><span class="badge bg-light text-dark border"><%= p.unidade_medida || 'UN' %></span></td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick='editarProduto(<%= JSON.stringify(p) %>)' title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Produto -->
+<div class="modal fade" id="modalProduto" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/cadastros/produtos/salvar" method="POST">
+        <input type="hidden" name="id" id="prodId">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-navy" id="prodModalTitle">Cadastrar Produto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Código do Produto <span class="text-danger">*</span></label>
+            <input type="text" name="codigo" id="prodCodigo" class="form-control text-uppercase" placeholder="ex: V012RT" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Descrição Detalhada <span class="text-danger">*</span></label>
+            <input type="text" name="descricao" id="prodDescricao" class="form-control" placeholder="ex: VS2800SK15RT/970MM CB 600MM" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Unidade de Medida</label>
+            <input type="text" name="unidade_medida" id="prodUnidade" class="form-control text-uppercase" value="UN">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-janlux btn-sm">Salvar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function limparFormProduto() {
+    document.getElementById('prodId').value = '';
+    document.getElementById('prodCodigo').value = '';
+    document.getElementById('prodDescricao').value = '';
+    document.getElementById('prodUnidade').value = 'UN';
+    document.getElementById('prodModalTitle').innerText = 'Cadastrar Novo Produto';
+  }
+
+  function editarProduto(p) {
+    document.getElementById('prodId').value = p.id;
+    document.getElementById('prodCodigo').value = p.codigo;
+    document.getElementById('prodDescricao').value = p.descricao;
+    document.getElementById('prodUnidade').value = p.unidade_medida || 'UN';
+    document.getElementById('prodModalTitle').innerText = 'Editar Produto';
+    new bootstrap.Modal(document.getElementById('modalProduto')).show();
+  }
+</script>
+
+<%- include('../partials/footer') %>
