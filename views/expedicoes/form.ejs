@@ -65,9 +65,9 @@
         </div>
 
         <div class="col-md-4">
-          <label class="form-label small fw-semibold">Transportadora Prevista</label>
-          <select name="transportadora_id" class="form-select">
-            <option value="">Selecione ou deixe em branco...</option>
+          <label class="form-label small fw-semibold">Transportadora <span class="text-danger">*</span></label>
+          <select name="transportadora_id" class="form-select" required>
+            <option value="">Selecione a transportadora obrigatória...</option>
             <% transportadoras.forEach(t => { %>
               <option value="<%= t.id %>"><%= t.nome %></option>
             <% }) %>
@@ -200,7 +200,7 @@
               <th style="width: 15%;">Comprimento (cm)</th>
               <th style="width: 15%;">Largura (cm)</th>
               <th style="width: 15%;">Altura (cm)</th>
-              <th style="width: 15%;">Peso (g)</th>
+              <th style="width: 15%;">Peso (kg)</th>
               <th style="width: 5%;"></th>
             </tr>
           </thead>
@@ -209,8 +209,10 @@
               <td class="fw-bold text-center vol-num">1</td>
               <td>
                 <select name="vol_embalagem_id" class="form-select form-select-sm" onchange="preencherDimensoes(this)">
-                  <% embalagens.forEach(emb => { %>
-                    <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= emb.peso_g %>">
+                  <% embalagens.forEach(emb => { 
+                    const embKg = ((emb.peso_kg !== undefined && emb.peso_kg !== null && emb.peso_kg > 0) ? emb.peso_kg : ((emb.peso_g || 0) / 1000.0)) || 0;
+                  %>
+                    <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= embKg.toFixed(3) %>">
                       <%= emb.descricao %> (<%= emb.codigo %>)
                     </option>
                   <% }) %>
@@ -219,7 +221,7 @@
               <td><input type="number" step="0.1" name="vol_comprimento" class="form-control form-control-sm" placeholder="cm" value="50"></td>
               <td><input type="number" step="0.1" name="vol_largura" class="form-control form-control-sm" placeholder="cm" value="30"></td>
               <td><input type="number" step="0.1" name="vol_altura" class="form-control form-control-sm" placeholder="cm" value="20"></td>
-              <td><input type="number" step="1" name="vol_peso" class="form-control form-control-sm" placeholder="gramas" value="1500"></td>
+              <td><input type="number" step="0.001" name="vol_peso" class="form-control form-control-sm" placeholder="ex: 1,500" value="1.500"></td>
               <td class="text-center">
                 <button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerVolume(this)" title="Remover"><i class="bi bi-trash"></i></button>
               </td>
@@ -276,35 +278,39 @@
 </main>
 
 <script>
+  const clientesLista = <%- JSON.stringify(clientes.map(c => ({
+    id: c.id,
+    codigo: (c.codigo || '').trim().toUpperCase(),
+    codigoNum: (c.codigo || '').replace(/\D/g, ''),
+    nome: c.razao_social,
+    cnpj: c.cnpj || ''
+  }))) %>;
+
   function buscarPorCodigo(cod) {
+    if (!cod) return;
     const limpo = cod.trim().toUpperCase();
     if (!limpo) return;
 
     const select = document.getElementById('clienteSelect');
-    let encontrado = false;
+    const cnpjInput = document.getElementById('cnpjDestinatarioInput');
+    const apenasDigitos = limpo.replace(/\D/g, '');
 
-    for (let i = 0; i < select.options.length; i++) {
-      const opt = select.options[i];
-      const optCod = (opt.getAttribute('data-codigo') || '').trim().toUpperCase();
-      if (optCod === limpo) {
-        select.selectedIndex = i;
-        document.getElementById('cnpjDestinatarioInput').value = opt.getAttribute('data-cnpj') || '';
-        encontrado = true;
-        break;
-      }
+    // 1. Busca exata de código (ex: CLI-0001 ou 0001)
+    let found = clientesLista.find(c => c.codigo === limpo || c.codigo === `CLI-${limpo}`);
+
+    // 2. Busca por número (ex: digitou 42 e o código cadastrado é CLI-0042)
+    if (!found && apenasDigitos) {
+      found = clientesLista.find(c => c.codigoNum && (c.codigoNum === apenasDigitos || parseInt(c.codigoNum, 10) === parseInt(apenasDigitos, 10)));
     }
 
-    if (!encontrado) {
-      // Se não encontrou código exato, busca se o código começa com o digitado
-      for (let i = 0; i < select.options.length; i++) {
-        const opt = select.options[i];
-        const optCod = (opt.getAttribute('data-codigo') || '').trim().toUpperCase();
-        if (optCod && optCod.includes(limpo)) {
-          select.selectedIndex = i;
-          document.getElementById('cnpjDestinatarioInput').value = opt.getAttribute('data-cnpj') || '';
-          break;
-        }
-      }
+    // 3. Busca por sufixo ou substring
+    if (!found && limpo.length >= 2) {
+      found = clientesLista.find(c => c.codigo && (c.codigo.endsWith(limpo) || c.codigo.includes(limpo)));
+    }
+
+    if (found) {
+      select.value = String(found.id);
+      cnpjInput.value = found.cnpj || '';
     }
   }
 
@@ -349,7 +355,7 @@
       row.querySelector('input[name="vol_comprimento"]').value = opt.getAttribute('data-comp') || 0;
       row.querySelector('input[name="vol_largura"]').value = opt.getAttribute('data-larg') || 0;
       row.querySelector('input[name="vol_altura"]').value = opt.getAttribute('data-alt') || 0;
-      row.querySelector('input[name="vol_peso"]').value = opt.getAttribute('data-peso') || 0;
+      row.querySelector('input[name="vol_peso"]').value = opt.getAttribute('data-peso') || '0.000';
     }
   }
 
@@ -373,8 +379,10 @@
       <td class="fw-bold text-center vol-num">${rowCount}</td>
       <td>
         <select name="vol_embalagem_id" class="form-select form-select-sm" onchange="preencherDimensoes(this)">
-          <% embalagens.forEach(emb => { %>
-            <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= emb.peso_g %>">
+          <% embalagens.forEach(emb => { 
+            const embKg = ((emb.peso_kg !== undefined && emb.peso_kg !== null && emb.peso_kg > 0) ? emb.peso_kg : ((emb.peso_g || 0) / 1000.0)) || 0;
+          %>
+            <option value="<%= emb.id %>" data-comp="<%= emb.comprimento_cm %>" data-larg="<%= emb.largura_cm %>" data-alt="<%= emb.altura_cm %>" data-peso="<%= embKg.toFixed(3) %>">
               <%= emb.descricao %> (<%= emb.codigo %>)
             </option>
           <% }) %>
@@ -383,7 +391,7 @@
       <td><input type="number" step="0.1" name="vol_comprimento" class="form-control form-control-sm" placeholder="cm" value="50"></td>
       <td><input type="number" step="0.1" name="vol_largura" class="form-control form-control-sm" placeholder="cm" value="30"></td>
       <td><input type="number" step="0.1" name="vol_altura" class="form-control form-control-sm" placeholder="cm" value="20"></td>
-      <td><input type="number" step="1" name="vol_peso" class="form-control form-control-sm" placeholder="gramas" value="1500"></td>
+      <td><input type="number" step="0.001" name="vol_peso" class="form-control form-control-sm" placeholder="ex: 1,500" value="1.500"></td>
       <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm border-0" onclick="removerVolume(this)" title="Remover"><i class="bi bi-trash"></i></button></td>
     `;
     tbody.appendChild(tr);

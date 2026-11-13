@@ -2,12 +2,14 @@
   "name": "janlux-almoxarifado",
   "version": "2.0.0",
   "description": "Sistema de Controle de Almoxarifado, Embalagens e Expedição - JANLUX ELÉTRICOS LTDA.",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "import": "node src/utils/importExcel.js",
-    "backup": "node src/utils/backup.js",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "node test/suite.js && node test/verify-modifications.js",
+    "import": "node dist/utils/importExcel.js",
+    "backup": "node dist/utils/backup.js",
     "migrate": "node src/utils/migrate-to-supabase.js"
   },
   "engines": {
@@ -28,5 +30,16 @@
     "multer": "^1.4.5-lts.1",
     "pdfkit": "^0.15.0",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.6",
+    "@types/pdfkit": "^0.17.7",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }

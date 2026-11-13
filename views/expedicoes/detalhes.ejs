@@ -219,7 +219,7 @@
             <i class="bi bi-boxes me-1"></i> 2. Volumes Físicos Expedidos (<%= volumes.length %> volumes)
           </h6>
           <span class="badge bg-warning-subtle text-dark">
-            <%= volumes.reduce((a, b) => a + (b.peso_g || 0), 0) %> g total
+            <%= formatWeightKg(volumes.reduce((a, b) => a + (parseFloat(b.peso_kg) || ((b.peso_g || 0) / 1000.0)), 0)) %> total
           </span>
         </div>
         <div class="table-responsive">
@@ -229,7 +229,7 @@
                 <th>Vol.</th>
                 <th>Tipo Embalagem</th>
                 <th>Dimensões (CxLxA)</th>
-                <th>Peso</th>
+                <th>Peso (kg)</th>
                 <th>Obs</th>
               </tr>
             </thead>
@@ -242,7 +242,7 @@
                     <td class="fw-bold text-center">#<%= v.numero_volume %></td>
                     <td class="fw-semibold"><%= v.tipo_embalagem || 'Papelão' %></td>
                     <td><%= v.comprimento_cm %> &times; <%= v.largura_cm %> &times; <%= v.altura_cm %> cm</td>
-                    <td><%= v.peso_g %> g</td>
+                    <td><%= formatWeightKg(v.peso_kg || ((v.peso_g || 0) / 1000.0)) %></td>
                     <td><small class="text-muted"><%= v.observacoes || '-' %></small></td>
                   </tr>
                 <% }) %>

@@ -44,7 +44,7 @@
             <th>Código</th>
             <th>Descrição / Tipo</th>
             <th>Dimensões (CxLxA)</th>
-            <th>Peso Padrão</th>
+            <th>Peso Padrão (kg)</th>
             <th class="text-center">Estoque Mínimo</th>
             <th class="text-center">Saldo Atual</th>
             <th>Status</th>
@@ -63,7 +63,7 @@
                   <% if (emb.observacoes) { %><br><small class="text-muted"><%= emb.observacoes %></small><% } %>
                 </td>
                 <td><%= emb.comprimento_cm %> &times; <%= emb.largura_cm %> &times; <%= emb.altura_cm %> cm</td>
-                <td><%= emb.peso_g %> g</td>
+                <td><%= formatWeightKg(emb.peso_kg || ((emb.peso_g || 0) / 1000.0)) %></td>
                 <td class="text-center"><span class="badge bg-light text-dark border"><%= emb.estoque_minimo %> <%= emb.unidade %></span></td>
                 <td class="text-center">
                   <span class="fw-bold fs-6 <%= emb.saldo <= 0 ? 'text-danger' : (emb.abaixoMinimo ? 'text-warning' : 'text-success') %>">
@@ -255,8 +255,8 @@
               <input type="number" step="0.1" name="altura_cm" class="form-control" placeholder="cm" value="20">
             </div>
             <div class="col-md-3">
-              <label class="form-label small fw-semibold">Peso Médio (g)</label>
-              <input type="number" step="1" name="peso_g" class="form-control" placeholder="gramas" value="400">
+              <label class="form-label small fw-semibold">Peso Médio (kg)</label>
+              <input type="number" step="0.001" name="peso_kg" class="form-control" placeholder="ex: 0,400" value="0.400">
             </div>
 
             <div class="col-md-4">
